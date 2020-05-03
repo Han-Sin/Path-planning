@@ -60,11 +60,17 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
         coord_x >= gl_xu || coord_y >= gl_yu || coord_z >= gl_zu )
         return;
 
-    int idx_x = static_cast<int>( (coord_x - gl_xl) * inv_resolution);
-    int idx_y = static_cast<int>( (coord_y - gl_yl) * inv_resolution);
-    int idx_z = static_cast<int>( (coord_z - gl_zl) * inv_resolution);
+    // int idx_x = static_cast<int>( (coord_x - gl_xl) * inv_resolution);
+    // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
+    // int idx_y = static_cast<int>( (coord_y - gl_yl) * inv_resolution);
+    // int idx_z = static_cast<int>( (coord_z - gl_zl) * inv_resolution);
 
-    int expand_size=1;
+    int idx_x = int( (coord_x - gl_xl) * inv_resolution);
+    // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
+    int idx_y = int( (coord_y - gl_yl) * inv_resolution);
+    int idx_z = int( (coord_z - gl_zl) * inv_resolution);
+
+    int expand_size=1;//膨胀栅格数，0时不膨胀，1够用
 
     for (int i=-expand_size;i<=expand_size;i++)
         for (int j=-expand_size;j<=expand_size;j++)
@@ -85,8 +91,6 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
                 data[temp_x * GLYZ_SIZE + temp_y * GLZ_SIZE + temp_z] = 1;//index(grid)
             }
 
-
-//    data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] = 1;//index(grid)
 }
 
 
@@ -381,8 +385,8 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 startPtr -> id = 1; //1 openlist,-1 closelist,0 unvisted
                 startPtr -> coord = start_pt;
                 openSet.insert( make_pair(startPtr -> fScore, startPtr) );*/
-                neighborPtr->gScore=currentPtr->gScore+1;
-//                neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
+                // neighborPtr->gScore=currentPtr->gScore+1;
+                neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
                 neighborPtr->fScore=neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                 neighborPtr->cameFrom=currentPtr;
                 neighborPtr->id=1;//push into openlist
@@ -397,9 +401,10 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 please write your code below
                 *
                 */
-                if(neighborPtr->gScore>currentPtr->gScore+1){
+                if(neighborPtr->gScore>currentPtr->gScore+getHeu(neighborPtr,currentPtr)){
                     //change
-                    neighborPtr->gScore = currentPtr->gScore+1;
+                    // neighborPtr->gScore = currentPtr->gScore+1;
+                    neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
                     neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                     neighborPtr->cameFrom = currentPtr;
                 }
@@ -411,8 +416,9 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 please write your code below
                 *
                 */
-                if(neighborPtr->gScore>currentPtr->gScore+1){
-                    neighborPtr->gScore = currentPtr->gScore+1;
+                if(neighborPtr->gScore>currentPtr->gScore+getHeu(neighborPtr,currentPtr)){
+                    // neighborPtr->gScore = currentPtr->gScore+1;
+                    neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
                     neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                     neighborPtr->cameFrom = currentPtr;
                     neighborPtr->id=1;
