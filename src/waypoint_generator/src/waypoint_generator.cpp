@@ -154,7 +154,6 @@ void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
     ros::NodeHandle n("~");
     n.param("waypoint_type", waypoint_type, string("manual"));
-    
     if (waypoint_type == string("circle")) {
         waypoints = circle();
         publish_waypoints_vis();
@@ -180,7 +179,8 @@ void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         } else {
             ROS_WARN("[waypoint_generator] invalid goal in manual-lonely-waypoint mode.");
         }
-    } else {
+    } 
+    else {
         if (msg->pose.position.z > 0) {
             // if height > 0, it's a normal goal;
             geometry_msgs::PoseStamped pt = *msg;

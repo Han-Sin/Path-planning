@@ -59,7 +59,7 @@ void rcvWaypointsCallback(const nav_msgs::Path & wp)
     target_pt << wp.poses[0].pose.position.x,
                  wp.poses[0].pose.position.y,
                  wp.poses[0].pose.position.z;
-
+    //cout<<"size: "<<wp.poses.size();
     ROS_INFO("[node] receive the planning target");
     pathFinding(_start_pt, target_pt); 
 }
