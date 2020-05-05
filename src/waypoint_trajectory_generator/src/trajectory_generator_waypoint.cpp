@@ -183,8 +183,8 @@ Eigen::MatrixXd TrajectoryGeneratorWaypoint::PolyQPGeneration(
     _Ct = getCt(m, d_order);
 
     /*  Produce the dereivatives in X, Y and Z axis directly.  */
-    MatrixXd StartState(d_order, 3);
-    MatrixXd EndState(d_order, 3);
+    MatrixXd StartState = MatrixXd::Zero(d_order, 3);
+    MatrixXd EndState = MatrixXd::Zero(d_order, 3);
     StartState.row(0) = Path.row(0);
     StartState.row(1) = Vel.row(0);
     StartState.row(2) = Acc.row(0);
@@ -196,6 +196,7 @@ Eigen::MatrixXd TrajectoryGeneratorWaypoint::PolyQPGeneration(
         StartState.row(3) = VectorXd::Zero(3);  // mini-snap,need jerk continuty
         EndState.row(3) = VectorXd::Zero(3); 
     }
+    //cout<<"startstate: "<<StartState<<endl;
     Px = QP_optimization(_Q, _M, _Ct, Path.col(0), StartState.col(0), EndState.col(0), m, d_order);
     Py = QP_optimization(_Q, _M, _Ct, Path.col(1), StartState.col(1), EndState.col(1), m, d_order);
     Pz = QP_optimization(_Q, _M, _Ct, Path.col(2), StartState.col(2), EndState.col(2), m, d_order);
