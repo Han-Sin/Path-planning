@@ -8,6 +8,12 @@ Panels:
         - /Grid1
         - /AllMap1
         - /AllMap1/Autocompute Value Bounds1
+        - /Global Options1
+        - /Status1
+        - /Marker4
+        - /Marker5
+        - /Marker6
+        - /Marker7
       Splitter Ratio: 0.609022558
     Tree Height: 566
   - Class: rviz/Selection
@@ -101,6 +107,22 @@ Visualization Manager:
       Name: gridPath
       Namespaces:
         demo_node/jps_path: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory_generator_node/vis_trajectory
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory_generator_node/vis_waypoint_path
+      Name: Marker
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true

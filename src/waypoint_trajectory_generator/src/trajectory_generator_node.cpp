@@ -60,12 +60,14 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
             break;
     }
 
-    MatrixXd waypoints(wp_list.size() + 1, 3);
-    waypoints.row(0) = _startPos;
-    
+    //MatrixXd waypoints(wp_list.size() + 1, 3);
+    //waypoints.row(0) = _startPos;
+    MatrixXd waypoints(wp_list.size(), 3);
+    //for(int k = 0; k < (int)wp_list.size(); k++)
+    //    waypoints.row(k+1) = wp_list[k];
     for(int k = 0; k < (int)wp_list.size(); k++)
-        waypoints.row(k+1) = wp_list[k];
-
+        waypoints.row(k) = wp_list[k];
+    
     //Trajectory generation: use minimum snap trajectory generation method
     //waypoints is the result of path planning (Manual in this homework)
     trajGeneration(waypoints);
@@ -134,7 +136,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     visualization_msgs::Marker _traj_vis;
 
     _traj_vis.header.stamp       = ros::Time::now();
-    _traj_vis.header.frame_id    = "/map";
+    _traj_vis.header.frame_id    = "world";
 
     _traj_vis.ns = "traj_node/trajectory_waypoints";
     _traj_vis.id = 0;
@@ -186,7 +188,7 @@ void visWayPointPath(MatrixXd path)
 {
     visualization_msgs::Marker points, line_list;
     int id = 0;
-    points.header.frame_id    = line_list.header.frame_id    = "/map";
+    points.header.frame_id    = line_list.header.frame_id    = "world";
     points.header.stamp       = line_list.header.stamp       = ros::Time::now();
     points.ns                 = line_list.ns                 = "wp_path";
     points.action             = line_list.action             = visualization_msgs::Marker::ADD;
@@ -276,12 +278,12 @@ VectorXd timeAllocation( MatrixXd Path)
     for(int i = 0; i < time.rows(); i++)
     {
         double distance = (Path.row(i+1) - Path.row(i)).norm();    // or .lpNorm<2>()
-        //double x1 = _Vel * _Vel / (2 * _Acc); 
-        //double x2 = distance - 2 * x1;
-        //double t1 = _Vel / _Acc;
-        //double t2 = x2 / _Vel;
-        //time(i) = 2 * t1 + t2;
-        time(i) = distance/_Vel;
+        double x1 = _Vel * _Vel / (2 * _Acc); 
+        double x2 = distance - 2 * x1;
+        double t1 = _Vel / _Acc;
+        double t2 = x2 / _Vel;
+        time(i) = 2 * t1 + t2;
+        //time(i) = distance/_Vel;
     }
     
     return time;

@@ -673,7 +673,7 @@ pair<vector<Vector3d>,nav_msgs::Path> AstarPathFinder::getSimplifiedPoints()
     }
         
     reverse(path.begin(),path.end());//这步在可视化上没有区别
-
+    reverse(waypoints.poses.begin(),waypoints.poses.end());
     pair<vector<Vector3d>,nav_msgs::Path> p;
     p=make_pair(path,waypoints);
     return p;//返回path和waypoints
