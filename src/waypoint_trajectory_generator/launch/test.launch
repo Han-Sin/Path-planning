@@ -6,8 +6,8 @@
       <remap from="~odom"      to="/msckf_vio/odometry"/>
       <remap from="~joy"      to="/djiros/rc"/>
       
-      <param name="planning/vel"       value="4.0"  />
-      <param name="planning/acc"       value="3.0"  />
+      <param name="planning/vel"       value="1.0"  />
+      <param name="planning/acc"       value="1.0"  />
       <param name="planning/dev_order" value="4"    />
       <param name="planning/min_order" value="3"    />
       <param name="vis/vis_traj_width" value="0.15" />

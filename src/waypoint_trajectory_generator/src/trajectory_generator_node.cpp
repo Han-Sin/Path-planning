@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
     nh.param("planning/vel",   _Vel,   1.0 );
     nh.param("planning/acc",   _Acc,   1.0 );//平均时速
-    nh.param("planning/dev_order", _dev_order,  3 );
+    nh.param("planning/dev_order", _dev_order,  4 );
     nh.param("planning/min_order", _min_order,  3 );
     nh.param("vis/vis_traj_width", _vis_traj_width, 0.15);
 
@@ -178,7 +178,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
           pre = cur;
         }
     }
-
+    ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
     _wp_traj_vis_pub.publish(_traj_vis);
 }
 

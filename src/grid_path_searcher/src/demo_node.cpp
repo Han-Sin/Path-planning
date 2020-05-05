@@ -122,7 +122,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     auto simplified_points_path_pair = _astar_path_finder->getSimplifiedPoints();//化简后的关键点
     auto simplified_points_path=simplified_points_path_pair.first;
     nav_msgs::Path simplified_waypoints=simplified_points_path_pair.second;
-
+    _simplified_waypoints_pub.publish(simplified_waypoints);
     ros::Time time_2 = ros::Time::now();
     ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
 
@@ -170,7 +170,7 @@ int main(int argc, char** argv)
     _visited_nodes_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_vis",1);
 
     //waypoints发布者，没写完
-    _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",1);
+    _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);
 
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);
