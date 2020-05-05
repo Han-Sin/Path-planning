@@ -5,6 +5,8 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <Eigen/Eigen>
+#include <nav_msgs/Path.h>
+#include <utility>
 #include "backward.hpp"
 #include "node.h"
 
@@ -14,6 +16,10 @@ class AstarPathFinder
 
 	protected:
 		uint8_t * data;
+
+		uint8_t * data_high_resolution;
+		int resolution_ratio=4;
+
 		GridNodePtr *** GridNodeMap;
 		Eigen::Vector3i goalIdx;
 		int GLX_SIZE, GLY_SIZE, GLZ_SIZE;
@@ -54,6 +60,10 @@ class AstarPathFinder
 		Eigen::Vector3d coordRounding(const Eigen::Vector3d & coord);
 		std::vector<Eigen::Vector3d> getPath();
 		std::vector<Eigen::Vector3d> getVisitedNodes();
+		std::vector<Eigen::Vector3d> getTurningPoints();
+		std::pair<std::vector<Eigen::Vector3d>,nav_msgs::Path>  getSimplifiedPoints();
+		// void getTurningPoints();
+		bool if_collision(int x,int y,int z);
 };
 
 #endif

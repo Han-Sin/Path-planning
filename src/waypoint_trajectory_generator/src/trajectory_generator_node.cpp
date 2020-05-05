@@ -11,10 +11,10 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
-#include <quadrotor_msgs/PolynomialTrajectory.h>
 #include <sensor_msgs/Joy.h>
 #include <algorithm>
 
+//#include <quadrotor_msgs/PolynomialTrajectory.h>
 // Useful customized headers
 #include "trajectory_generator_waypoint.h"
 

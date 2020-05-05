@@ -38,7 +38,7 @@ int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub;
-ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub;
+ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
@@ -59,7 +59,7 @@ void rcvWaypointsCallback(const nav_msgs::Path & wp)
     target_pt << wp.poses[0].pose.position.x,
                  wp.poses[0].pose.position.y,
                  wp.poses[0].pose.position.z;
-    //cout<<"size: "<<wp.poses.size();
+
     ROS_INFO("[node] receive the planning target");
     pathFinding(_start_pt, target_pt); 
 }
@@ -77,9 +77,11 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
     if( (int)cloud.points.size() == 0 ) return;
 
     pcl::PointXYZ pt;
+    ROS_INFO("cloud points size=%d\n",(int)cloud.points.size());
     for (int idx = 0; idx < (int)cloud.points.size(); idx++)
     {
         pt = cloud.points[idx];
+        // ROS_INFO("cloud points x=%f  y=%f   z=%f   \n",pt.x, pt.y, pt.z);
         // set obstalces into grid map for path planning
         _astar_path_finder->setObs(pt.x, pt.y, pt.z);
         _jps_path_finder->setObs(pt.x, pt.y, pt.z);
@@ -109,13 +111,25 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //Call A* to search for a path
     _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
 
+    ros::Time time_1 = ros::Time::now();
+
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
     auto visited_nodes = _astar_path_finder->getVisitedNodes();
 
+    // auto turning_points_path = _astar_path_finder->getTurningPoints();
+
+    auto simplified_points_path_pair = _astar_path_finder->getSimplifiedPoints();//化简后的关键点
+    auto simplified_points_path=simplified_points_path_pair.first;
+    nav_msgs::Path simplified_waypoints=simplified_points_path_pair.second;
+
+    ros::Time time_2 = ros::Time::now();
+    ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
+
     //Visualize the result
     visGridPath (grid_path, false);
-    visVisitedNode(visited_nodes);
+    // visVisitedNode(visited_nodes);
+    visVisitedNode(simplified_points_path);
 
     //Reset map for next call
     _astar_path_finder->resetUsedGrids();
@@ -154,6 +168,9 @@ int main(int argc, char** argv)
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
     _visited_nodes_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_vis",1);
+
+    //waypoints发布者，没写完
+    _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",1);
 
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);
@@ -223,9 +240,9 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
     }
     else{
         node_vis.color.a = 1.0;
-        node_vis.color.r = 0.0;
-        node_vis.color.g = 0.0;
-        node_vis.color.b = 0.0;
+        node_vis.color.r = 1.0;
+        node_vis.color.g = 1.0;
+        node_vis.color.b = 1.0;
     }
 
 
@@ -262,8 +279,8 @@ void visVisitedNode( vector<Vector3d> nodes )
     node_vis.pose.orientation.w = 1.0;
     node_vis.color.a = 0.4;
     node_vis.color.r = 1.0;
-    node_vis.color.g = 1.0;
-    node_vis.color.b = 1.0;
+    node_vis.color.g = 0.0;
+    node_vis.color.b = 0.0;
 
     node_vis.scale.x = _resolution;
     node_vis.scale.y = _resolution;

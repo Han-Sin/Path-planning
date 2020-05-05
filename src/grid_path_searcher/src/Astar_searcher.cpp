@@ -1,5 +1,7 @@
 #include "Astar_searcher.h"
 #include <math.h>
+#include <nav_msgs/Path.h>
+#include <utility>
 using namespace std;
 using namespace Eigen;
 
@@ -23,6 +25,10 @@ void AstarPathFinder::initGridMap(double _resolution, Vector3d global_xyz_l, Vec
     inv_resolution = 1.0 / _resolution;    
     data = new uint8_t[GLXYZ_SIZE];
     memset(data, 0, GLXYZ_SIZE * sizeof(uint8_t));
+
+    //初始化一张高分辨率障碍地图，倍率为2（2×2×2）
+    data_high_resolution=new uint8_t[GLXYZ_SIZE*resolution_ratio*resolution_ratio*resolution_ratio];
+    memset(data_high_resolution, 0, GLXYZ_SIZE*resolution_ratio*resolution_ratio*resolution_ratio * sizeof(uint8_t));
     
     GridNodeMap = new GridNodePtr ** [GLX_SIZE];
     for(int i = 0; i < GLX_SIZE; i++){
@@ -60,17 +66,17 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
         coord_x >= gl_xu || coord_y >= gl_yu || coord_z >= gl_zu )
         return;
 
-    // int idx_x = static_cast<int>( (coord_x - gl_xl) * inv_resolution);
-    // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
-    // int idx_y = static_cast<int>( (coord_y - gl_yl) * inv_resolution);
-    // int idx_z = static_cast<int>( (coord_z - gl_zl) * inv_resolution);
-
     int idx_x = int( (coord_x - gl_xl) * inv_resolution);
     // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    int expand_size=1;//膨胀栅格数，0时不膨胀，1够用
+    double expand_ratio=1;
+
+    double default_resolution=0.2;
+    int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
+    if(expand_size<=0)
+        expand_size=1;
 
     for (int i=-expand_size;i<=expand_size;i++)
         for (int j=-expand_size;j<=expand_size;j++)
@@ -89,6 +95,38 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
                     continue;
 //                ROS_WARN("expand suc,%d  %d  %d  ",i,j,k);
                 data[temp_x * GLYZ_SIZE + temp_y * GLZ_SIZE + temp_z] = 1;//index(grid)
+            }
+    
+
+    //高分辨率地图的创建
+    double high_resolution=resolution/resolution_ratio;//分辨率
+    double high_inv_resolution=1/high_resolution;//反分辨率
+    //高分辨率障碍物地图设置
+    idx_x = int( (coord_x - gl_xl) * high_inv_resolution);
+    // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
+    idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
+    idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
+    
+    int high_expand_size=(int)(expand_ratio*(double)(default_resolution/high_resolution));//膨胀单位
+    // ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
+    for (int i=-high_expand_size;i<=high_expand_size;i++)
+        for (int j=-high_expand_size;j<=high_expand_size;j++)
+            for (int k=-high_expand_size;k<=high_expand_size;k++)
+            {
+                int temp_x=idx_x+i;
+                int temp_y=idx_y+j;
+                int temp_z=idx_z+k;
+
+                double rev_x=(double)temp_x/high_inv_resolution+gl_xl;
+                double rev_y=(double)temp_y/high_inv_resolution+gl_yl;
+                double rev_z=(double)temp_z/high_inv_resolution+gl_zl;
+
+                if( rev_x < gl_xl  || rev_y < gl_yl  || rev_z <  gl_zl ||
+                    rev_x >= gl_xu || rev_y >= gl_yu || rev_z >= gl_zu )
+                    continue;
+//                ROS_WARN("expand suc,%d  %d  %d  ",i,j,k);
+                //障碍物的下标设置需要注意，xyz分别要乘以分辨率倍率的平方，一次，零次
+                data_high_resolution[temp_x * GLYZ_SIZE*resolution_ratio*resolution_ratio + temp_y * GLZ_SIZE *resolution_ratio+ temp_z ] = 1;//index(grid)
             }
 
 }
@@ -111,12 +149,22 @@ vector<Vector3d> AstarPathFinder::getVisitedNodes()
     vector<Vector3d> path;
     vector<GridNodePtr> gridPath;
 
-    while(terminatePtr!=NULL){
-        gridPath.push_back(terminatePtr);
-        terminatePtr = terminatePtr->cameFrom;
+    GridNodePtr tempPtr=terminatePtr;    
+
+    // while(terminatePtr!=NULL){
+    //     gridPath.push_back(terminatePtr);
+    //     terminatePtr = terminatePtr->cameFrom;
+    // }
+    // for (auto ptr: gridPath)
+    //     path.push_back(ptr->coord);
+
+    while(tempPtr!=NULL){
+        gridPath.push_back(tempPtr);
+        tempPtr = tempPtr->cameFrom;
     }
     for (auto ptr: gridPath)
         path.push_back(ptr->coord);
+
 
     reverse(path.begin(),path.end());
 
@@ -254,6 +302,7 @@ double AstarPathFinder::getG(GridNodePtr node1, GridNodePtr node2)
     *
     *
     */
+    //return 1;
     int  x1 = node1->index(0);
     int  y1 = node1->index(1);
     int  z1 = node1->index(2);
@@ -386,7 +435,7 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 startPtr -> coord = start_pt;
                 openSet.insert( make_pair(startPtr -> fScore, startPtr) );*/
                 // neighborPtr->gScore=currentPtr->gScore+1;
-                neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
+                neighborPtr->gScore=currentPtr->gScore+getG(neighborPtr,currentPtr);
                 neighborPtr->fScore=neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                 neighborPtr->cameFrom=currentPtr;
                 neighborPtr->id=1;//push into openlist
@@ -401,10 +450,10 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 please write your code below
                 *
                 */
-                if(neighborPtr->gScore>currentPtr->gScore+getHeu(neighborPtr,currentPtr)){
+                if(neighborPtr->gScore>currentPtr->gScore+getG(neighborPtr,currentPtr)){
                     //change
                     // neighborPtr->gScore = currentPtr->gScore+1;
-                    neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
+                    neighborPtr->gScore=currentPtr->gScore+getG(neighborPtr,currentPtr);
                     neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                     neighborPtr->cameFrom = currentPtr;
                 }
@@ -416,9 +465,9 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
                 please write your code below
                 *
                 */
-                if(neighborPtr->gScore>currentPtr->gScore+getHeu(neighborPtr,currentPtr)){
+                if(neighborPtr->gScore>currentPtr->gScore+getG(neighborPtr,currentPtr)){
                     // neighborPtr->gScore = currentPtr->gScore+1;
-                    neighborPtr->gScore=currentPtr->gScore+getHeu(neighborPtr,currentPtr);
+                    neighborPtr->gScore=currentPtr->gScore+getG(neighborPtr,currentPtr);
                     neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
                     neighborPtr->cameFrom = currentPtr;
                     neighborPtr->id=1;
@@ -460,4 +509,179 @@ vector<Vector3d> AstarPathFinder::getPath()
     terminatePtr=tempPtr;
 
     return path;
+}
+
+//第一版，只拉直，已弃用
+vector<Vector3d> AstarPathFinder::getTurningPoints()
+// void AstarPathFinder::getTurningPoints()
+{
+    vector<Vector3d> path;
+    vector<GridNodePtr> gridPath;
+
+    GridNodePtr currentPtr=terminatePtr;
+
+    GridNodePtr nextPtr=terminatePtr;
+
+    GridNodePtr lastPtr;
+
+    GridNodePtr lastTurningPtr=terminatePtr;
+
+    gridPath.push_back(lastTurningPtr);
+
+    double K_xy=0;
+    double K_xy_current;
+    double K_yz=0;
+    double K_yz_current;
+    double my_inf=99999;
+    int K_init_flag=1;
+
+    // ROS_INFO("x=%d   y=%d    ",currentPtr->index(0),currentPtr->index(1));
+    while(currentPtr->cameFrom!=NULL)
+    {
+        lastPtr=currentPtr->cameFrom;   
+
+        int  x1 = lastTurningPtr->index(0);
+        int  y1 = lastTurningPtr->index(1);
+        int  z1 = lastTurningPtr->index(2);
+        int  x2 = lastPtr->index(0);
+        int  y2 = lastPtr->index(1);
+        int  z2 = lastPtr->index(2);
+
+        if(x1==x2)
+            K_xy_current=my_inf;
+        else
+            K_xy_current=double(y1-y2)/(x1-x2);
+
+        if(z1==z2)
+            K_yz_current=my_inf;
+        else
+            K_yz_current=double(y1-y2)/(z1-z2);
+
+        // ROS_INFO("K_current=%f  K=%f init_flag=%d x1=%d   y1=%d    x2=%d    y2=%d",K_xy_current,K_xy,K_init_flag,x1,y1,x2,y2);
+              
+        if(K_init_flag)
+        {
+            K_xy=K_xy_current;
+            K_yz=K_yz_current;
+            K_init_flag=0;
+        }
+
+        if (K_xy_current!=K_xy||K_yz_current!=K_yz)
+        {
+            K_init_flag=1;
+            lastTurningPtr=currentPtr;
+            gridPath.push_back(lastTurningPtr);
+            continue;
+        }
+
+        nextPtr=currentPtr;
+        currentPtr=lastPtr;
+        // break;
+    }
+    gridPath.push_back(currentPtr);
+
+    for (auto ptr: gridPath)
+        path.push_back(ptr->coord);
+        
+    reverse(path.begin(),path.end());
+    return path;
+
+}
+
+
+//输入A星得到的路径点，输出简化后的关键点
+pair<vector<Vector3d>,nav_msgs::Path> AstarPathFinder::getSimplifiedPoints()
+{
+    vector<Vector3d> path;
+    vector<GridNodePtr> gridPath;
+
+    GridNodePtr currentPtr=terminatePtr;//从终点开始往前找
+
+    // GridNodePtr nextPtr=terminatePtr;//current的下一个节点（终点方向）(常规意义上的上一个节点)   
+    //在这个函数里没啥用，不过还是维护了
+
+    GridNodePtr lastPtr;//current的上一个节点（起点方向）（常规意义上的下一个节点）
+
+    GridNodePtr lastTurningPtr=terminatePtr;//上一个关键点
+
+    gridPath.push_back(lastTurningPtr);//终点肯定是关键点
+
+    while(currentPtr->cameFrom!=NULL)
+    {
+        GridNodePtr maxPtr=currentPtr->cameFrom;//初始化最远无碰节点
+        while(currentPtr->cameFrom!=NULL)
+        {
+            lastPtr=currentPtr->cameFrom;   
+
+            int  x1 = lastTurningPtr->index(0);
+            int  y1 = lastTurningPtr->index(1);
+            int  z1 = lastTurningPtr->index(2);
+            int  x2 = lastPtr->index(0);
+            int  y2 = lastPtr->index(1);
+            int  z2 = lastPtr->index(2);
+
+            int collision_flag=0;//碰撞标志位
+
+            double divide_piece_num=20;//碰撞检测划分份数
+            for (double k=0;k<1;k+=1.0/divide_piece_num)
+            {
+                //得到等分点坐标
+                int x_check=int(x1*resolution_ratio+(double)k*(x2-x1)*resolution_ratio);
+                int y_check=int(y1*resolution_ratio+(double)k*(y2-y1)*resolution_ratio);
+                int z_check=int(z1*resolution_ratio+(double)k*(z2-z1)*resolution_ratio);
+                // ROS_INFO("check_x=%d   y=%d   z=%d",x_check,y_check,z_check);
+                if(if_collision(x_check,y_check,z_check))
+                    collision_flag=1;
+            }
+            if(collision_flag==0)
+            {
+                // ROS_INFO("collision!");
+                //解决死循环
+                // if(lastTurningPtr==currentPtr)
+                //     {
+                //         ROS_WARN("dead loop occurs!!!");
+                //         nextPtr=currentPtr;
+                //         currentPtr=lastPtr;
+                //         continue;
+                //     }
+                maxPtr=lastPtr;//若无碰，更新最大无碰节点
+            }
+
+            // nextPtr=currentPtr;//更新next
+            currentPtr=lastPtr;//更新current
+
+        }
+        lastTurningPtr=maxPtr;//更新最新的关键点
+        gridPath.push_back(lastTurningPtr);//储存关键点
+        currentPtr=maxPtr;//更新current
+
+        // break;
+    }
+    // gridPath.push_back(currentPtr);
+    
+    nav_msgs::Path waypoints;
+    geometry_msgs::PoseStamped pt;
+
+    for (auto ptr: gridPath)
+    {
+        path.push_back(ptr->coord);//维护path
+        ROS_INFO("coord_x=%f   y=%f   z=%f",ptr->coord(0),ptr->coord(1),ptr->coord(2));
+        pt.pose.position.y =  ptr->coord(1);
+        pt.pose.position.x =  ptr->coord(0);
+        pt.pose.position.z =  ptr->coord(2);
+        waypoints.poses.push_back(pt);//维护waypoints
+    }
+        
+    reverse(path.begin(),path.end());//这步在可视化上没有区别
+
+    pair<vector<Vector3d>,nav_msgs::Path> p;
+    p=make_pair(path,waypoints);
+    return p;//返回path和waypoints
+
+}
+
+
+bool AstarPathFinder::if_collision(int x,int y,int z)
+{
+    return data_high_resolution[x * GLYZ_SIZE*resolution_ratio*resolution_ratio + y * GLZ_SIZE *resolution_ratio+ z ];
 }

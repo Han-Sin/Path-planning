@@ -37,8 +37,8 @@
       <param name="map/y_size"     value="$(arg map_size_y)" />
       <param name="map/z_size"     value="$(arg map_size_z)" />
 
-      <param name="map/circle_num" value="100"/>        
-      <param name="map/obs_num"    value="0"/>        
+      <param name="map/circle_num" value="0"/>        
+      <param name="map/obs_num"    value="40"/>        
       <param name="map/resolution" value="0.1"/>        
 
       <param name="ObstacleShape/lower_rad" value="0.1"/>
