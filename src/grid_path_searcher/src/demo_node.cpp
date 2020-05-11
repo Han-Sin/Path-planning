@@ -140,6 +140,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
         temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
         visVisitedNode(temp_path);
     }
+    _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
 
 
     // _simplified_waypoints_pub.publish(simplified_waypoints);

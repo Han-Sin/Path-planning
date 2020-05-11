@@ -1047,7 +1047,10 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
         {
             collision_flag=1;
 
+            ROS_WARN("collision point is x=%f  y=%f  z=%f  ",points[i].x,points[i].y,points[i].z);
+
             double max_cos_theta=-100;
+            double min_cos_theta=100;
 
             for (i=0;i<raw_path.size()-1;i++)
             {
@@ -1066,16 +1069,20 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
                 double dz3=raw_path[i+1](2)-raw_path[i](2);
                 double d3=sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
 
-                double cos_theta=(d3*d3-d1*d1-d2*d2)/(2*d1*d2);
+                double cos_theta=(-d3*d3+d1*d1+d2*d2)/(2*d1*d2);
 
-                // ROS_INFO("cos_theta=%f   ",cos_theta);
+                ROS_INFO("cos_theta=%f   d1=%f  d2=%f  d3=%f  i=%d",cos_theta,i,d1,d2,d3);
 
-                if(cos_theta>max_cos_theta)
+                // if(cos_theta>max_cos_theta)
+                // {
+                //     max_cos_theta=cos_theta;
+                //     coll_order=i;
+                // }
+                if(cos_theta<min_cos_theta)
                 {
-                    max_cos_theta=cos_theta;
+                    min_cos_theta=cos_theta;
                     coll_order=i;
                 }
-
             }
             break;
         }
