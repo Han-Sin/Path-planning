@@ -42,6 +42,7 @@ using namespace Eigen;
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
+    Vector3d getAcc(MatrixXd _polyCoeff, int k, double t);
     VectorXd timeAllocation( MatrixXd Path);
     void trajGeneration(Eigen::MatrixXd path);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
@@ -175,7 +176,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
             if(true)
             {
                 Vector3d vel = getVelocity(polyCoeff, i, t);
-                ROS_INFO_STREAM("VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
+                ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
                 if(t+0.01>=time(i))
                     ROS_INFO(" ");
@@ -221,9 +222,9 @@ void visWayPointPath(MatrixXd path)
     points.color.g = 0.0;
     points.color.b = 0.0;
 
-    line_list.scale.x = 0.15;
-    line_list.scale.y = 0.15;
-    line_list.scale.z = 0.15;
+    line_list.scale.x = _vis_traj_width;
+    line_list.scale.y = _vis_traj_width;
+    line_list.scale.z = _vis_traj_width;
     line_list.color.a = 1.0;
 
     
@@ -311,7 +312,8 @@ VectorXd timeAllocation( MatrixXd Path)
         double t1 = _Vel / _Acc;
         double t2 = x2 / _Vel;
         time(i) = 2 * t1 + t2;
-        //time(i) = distance/_Vel;
+        //time(i) = distance/_Vel;匀速直线运动模型
+        //time(i) =  2*sqrt(distance/_Acc);//时间最优模型
     }
     
     return time;
