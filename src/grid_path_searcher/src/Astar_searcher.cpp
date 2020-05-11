@@ -74,7 +74,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=0;
+    double expand_ratio=1;
 
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
@@ -111,9 +111,9 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
     
     double expand_scale_ratio=1;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
-    double expand_ratio_high=0.5;
+    // double expand_ratio_high=1;
 
-    int high_expand_size=(int)(expand_ratio_high*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
+    int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
     // ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
     for (int i=-high_expand_size;i<=high_expand_size;i++)
         for (int j=-high_expand_size;j<=high_expand_size;j++)
@@ -1019,14 +1019,17 @@ int second_key_point=my_inf;
 //迭代增加关键点
 vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3d>raw_path,visualization_msgs::Marker traj,int &flag)
 {
-    static int count=0;
-    count++;
-    if(count==1)
-    {
-        count=0;
-        flag=0;
-    }
+    // static int count=0;
+    // count++;
+    // if(count==1)
+    // {
+    //     count=0;
+    //     flag=0;
+    // }
     // flag=0;
+
+    static int add_point_count=0;
+
     auto points=traj.points;
     ROS_INFO("traj size= %d ",points.size());
 
@@ -1039,7 +1042,8 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
         // ROS_INFO("traj X=%f  Y=%f  Z=%f  ",points[i].x,points[i].y,points[i].z);
         // cout<<typeid(points[i]).name()<<endl;
         auto temp_idx=coord2gridIndex(temp_coord);
-        if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
+        if(if_collision(temp_idx[0]*resolution_ratio,temp_idx[1]*resolution_ratio,temp_idx[2]*resolution_ratio))
+        // if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
         {
             collision_flag=1;
 
@@ -1064,7 +1068,7 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
 
                 double cos_theta=(d3*d3-d1*d1-d2*d2)/(2*d1*d2);
 
-                ROS_INFO("cos_theta=%f   ",cos_theta);
+                // ROS_INFO("cos_theta=%f   ",cos_theta);
 
                 if(cos_theta>max_cos_theta)
                 {
@@ -1084,10 +1088,19 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
         double temp_y=(raw_path[coll_order+1](1)+raw_path[coll_order](1))/2;
         double temp_z=(raw_path[coll_order+1](2)+raw_path[coll_order](2))/2;
         Vector3d temp_p(temp_x,temp_y,temp_z);
-        auto loc=raw_path.begin()+coll_order;
+        auto loc=raw_path.begin()+coll_order+1;
+        ROS_WARN("insertion suc!   pos=%d  parent1_x=%f   parent2_x=%f",coll_order,raw_path[coll_order+1](0),raw_path[coll_order](0));
         raw_path.insert(loc,temp_p);
-        ROS_WARN("insertion suc!");
+        ROS_WARN("inserted point is x=%f  y=%f   z=%f   ",temp_x,temp_y,temp_z);
+        add_point_count++;
     }
+    
+    flag=collision_flag;
+    if(collision_flag==0)
+        add_point_count=0;
+        
+    if(add_point_count>10)
+        flag=0;
 
     // ros::NodeHandle nh("~");
     // ros::Subscriber trajectory_sub;

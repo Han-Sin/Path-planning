@@ -138,10 +138,11 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
         ros::Rate rate(50);//等待traj_generator_node发送回来traj
         rate.sleep();
         temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
+        visVisitedNode(temp_path);
     }
 
 
-    _simplified_waypoints_pub.publish(simplified_waypoints);
+    // _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
 
     ros::Time time_2 = ros::Time::now();
@@ -150,7 +151,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //Visualize the result
     visGridPath (grid_path, false);
     // visVisitedNode(visited_nodes);
-    visVisitedNode(simplified_points_path);
+    // visVisitedNode(simplified_points_path);
     // visVisitedNode(simplified_path_RDP);
 
     //Reset map for next call
@@ -321,9 +322,9 @@ void visVisitedNode( vector<Vector3d> nodes )
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
     node_vis.color.a = 0.8;
-    node_vis.color.r = 1.0;
+    node_vis.color.r = 0.0;
     node_vis.color.g = 0.0;
-    node_vis.color.b = 0.0;
+    node_vis.color.b = 1.0;
 
     node_vis.scale.x = _resolution;
     node_vis.scale.y = _resolution;
