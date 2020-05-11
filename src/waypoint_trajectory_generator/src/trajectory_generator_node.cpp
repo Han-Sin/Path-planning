@@ -28,7 +28,7 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub;
-    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub;
+    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub;
 
 // for planning
     int _poly_num1D;
@@ -42,6 +42,7 @@ using namespace Eigen;
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
+    Vector3d getAcc(MatrixXd polyCoeff, int k, double t);
     VectorXd timeAllocation( MatrixXd Path);
     void trajGeneration(Eigen::MatrixXd path);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
+    _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
 
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -170,6 +172,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     geometry_msgs::Point pt;
 
     vector<Vector3d> vel_pub;
+    vector<Vector3d> acc_pub;
 
     for(int i = 0; i < time.size(); i++ )
     {   
@@ -179,11 +182,13 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
             if(true)
             {
                 Vector3d vel = getVelocity(polyCoeff, i, t);
-                vel_pub.push_back(vel);
-                // ROS_INFO_STREAM("VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
+                ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
-                // if(t+0.01>=time(i))
-                //     ROS_INFO(" ");
+                Vector3d acc = getAcc(polyCoeff,i,t);
+                vel_pub.push_back(vel);
+                acc_pub.push_back(acc);
+                if(t+0.01>=time(i))
+                    ROS_INFO(" ");
             }
           pos = getPosPoly(polyCoeff, i, t);
           cur(0) = pt.x = pos(0);
@@ -198,6 +203,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
     _wp_traj_vis_pub.publish(_traj_vis);
     _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+    _acc_pub.publish(vector3d_to_waypoints(acc_pub));
 }
 
 void visWayPointPath(MatrixXd path)
@@ -227,9 +233,9 @@ void visWayPointPath(MatrixXd path)
     points.color.g = 0.0;
     points.color.b = 0.0;
 
-    line_list.scale.x = 0.15;
-    line_list.scale.y = 0.15;
-    line_list.scale.z = 0.15;
+    line_list.scale.x = _vis_traj_width;
+    line_list.scale.y = _vis_traj_width;
+    line_list.scale.z = _vis_traj_width;
     line_list.color.a = 1.0;
 
     
@@ -302,6 +308,23 @@ Vector3d getVelocity(MatrixXd polyCoeff, int k, double t)
 	}
 	return vel;
 }
+Vector3d getAcc(MatrixXd polyCoeff, int k, double t){
+    Vector3d Acc;
+	for (int dim = 0; dim < 3; dim++) {
+		VectorXd coeff = (polyCoeff.row(k)).segment(dim * _poly_num1D, _poly_num1D);
+		VectorXd time = VectorXd::Zero(_poly_num1D);
+		for (int j = 0; j < _poly_num1D; j++)
+			if (j == 0 || j==1)
+				time(j) = 0;
+			else if (j == 2)
+				time(j) = 2;
+			else
+				time(j) = pow(t, j-2)*j*(j-1);
+
+		Acc(dim) = coeff.dot(time);
+	}
+	return Acc;
+}
 
 VectorXd timeAllocation( MatrixXd Path)
 { 
@@ -317,7 +340,6 @@ VectorXd timeAllocation( MatrixXd Path)
         double t1 = _Vel / _Acc;
         double t2 = x2 / _Vel;
         time(i) = 2 * t1 + t2;
-
         time(i)=time(i)*1;
         //time(i) = distance/_Vel;
     }

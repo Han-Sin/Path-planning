@@ -94,15 +94,15 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /demo_node/visited_nodes_vis
       Name: visitedNodes
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath
       Namespaces:
@@ -118,7 +118,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /trajectory_generator_node/vis_waypoint_path
       Name: Marker
       Namespaces:
