@@ -178,7 +178,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
             // if(t==0.0||t+0.01>=time(i))
             if(true)
             {
-                Vector3d vel = getVelocity(polyCoeff, i, t);
+                Vector3d vel = getVelocity(polyCoeff, i, t);111
                 vel_pub.push_back(vel);
                 ROS_INFO_STREAM("VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
