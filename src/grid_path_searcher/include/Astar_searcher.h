@@ -9,6 +9,7 @@
 #include <utility>
 #include "backward.hpp"
 #include "node.h"
+#include <visualization_msgs/Marker.h>
 
 class AstarPathFinder
 {	
@@ -68,6 +69,8 @@ class AstarPathFinder
 		// void getTurningPoints();
 		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
 		bool if_collision(int x,int y,int z);
+
+		std::vector<Eigen::Vector3d> recursive_get_simplified_points(std::vector<Eigen::Vector3d>raw_path,visualization_msgs::Marker traj_global,int &flag);
 };
 
 #endif

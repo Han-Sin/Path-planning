@@ -37,11 +37,14 @@ Vector3d _map_lower, _map_upper;
 int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
-ros::Subscriber _map_sub, _pts_sub;
+ros::Subscriber _map_sub, _pts_sub,_traj_sub;
 ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
+
+
+visualization_msgs::Marker traj_global;
 
 void rcvWaypointsCallback(const nav_msgs::Path & wp);
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
@@ -125,6 +128,19 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
+
+    //迭代加关键点
+    auto temp_path=simplified_points_path;
+    int collision_flag=1;
+    while(collision_flag)
+    {
+        _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
+        ros::Rate rate(50);//等待traj_generator_node发送回来traj
+        rate.sleep();
+        temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
+    }
+
+
     _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
 
@@ -163,6 +179,16 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 #endif
 }
 
+
+void TrajectoryCallBack(const visualization_msgs::Marker  & trajectory)
+{
+    traj_global=trajectory;
+    ROS_WARN("traj_update!");
+    // auto points=trajectory.points;
+    // ROS_WARN("trajectory length=   ",points.size());
+}
+
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "demo_node");
@@ -170,6 +196,7 @@ int main(int argc, char** argv)
 
     _map_sub  = nh.subscribe( "map",       1, rcvPointCloudCallBack );
     _pts_sub  = nh.subscribe( "waypoints", 1, rcvWaypointsCallback );
+    _traj_sub = nh.subscribe( "/trajectory_generator_node/vis_trajectory", 1, TrajectoryCallBack );
 
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
@@ -204,13 +231,23 @@ int main(int argc, char** argv)
     _jps_path_finder    = new JPSPathFinder();
     _jps_path_finder    -> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     
+
+
+
+
+
     ros::Rate rate(100);
     bool status = ros::ok();
+
+    ros::AsyncSpinner spinner(4); // Use 4 threads
+    
     while(status) 
     {
-        ros::spinOnce();      
-        status = ros::ok();
-        rate.sleep();
+        // ros::spinOnce();      
+        // status = ros::ok();
+        // rate.sleep();
+        spinner.start();
+        ros::waitForShutdown();
     }
 
     delete _astar_path_finder;

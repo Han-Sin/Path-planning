@@ -102,7 +102,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath
       Namespaces:
@@ -118,7 +118,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_waypoint_path
       Name: Marker
       Namespaces:

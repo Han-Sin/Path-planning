@@ -1,9 +1,12 @@
 #include "Astar_searcher.h"
 #include <math.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
 #include <utility>
 using namespace std;
 using namespace Eigen;
+
+void TrajectoryCallBack(const visualization_msgs::Marker  & trajectory);
 
 void AstarPathFinder::initGridMap(double _resolution, Vector3d global_xyz_l, Vector3d global_xyz_u, int max_x_id, int max_y_id, int max_z_id)
 {   
@@ -71,7 +74,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=1;
+    double expand_ratio=0;
 
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
@@ -107,7 +110,10 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
     idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
     
-    int high_expand_size=(int)(expand_ratio*(double)(default_resolution/high_resolution));//膨胀单位
+    double expand_scale_ratio=1;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
+    double expand_ratio_high=0.5;
+
+    int high_expand_size=(int)(expand_ratio_high*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
     // ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
     for (int i=-high_expand_size;i<=high_expand_size;i++)
         for (int j=-high_expand_size;j<=high_expand_size;j++)
@@ -647,52 +653,34 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
 
         }
 
+        // double default_resolution=0.2;
+        // int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
 
-        double default_resolution=0.2;
-        int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
-
-        if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
-            {
-                int divide_num=(int)line_point_count/point_gap_max+1;
-                int gap=(int)line_point_count/divide_num;
-                int temp_count=0;
-                // GridNodePtr tempPtr=lastTurningPtr;
+        // if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+        //     {
+        //         int divide_num=(int)line_point_count/point_gap_max+1;
+        //         int gap=(int)line_point_count/divide_num;
+        //         int temp_count=0;
+        //         // GridNodePtr tempPtr=lastTurningPtr;
                 
+        //         int  x_last = lastTurningPtr->index(0);
+        //         int  y_last = lastTurningPtr->index(1);
+        //         int  z_last = lastTurningPtr->index(2);
+        //         int  x_current = maxPtr->index(0);
+        //         int  y_current = maxPtr->index(1);
+        //         int  z_current = maxPtr->index(2);
 
+        //         for (int i=1;i<divide_num;i++)//i从1开始避免重点
+        //         {
+        //             Vector3i temp_idx;
+        //             temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
+        //             temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
+        //             temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
 
-                int  x_last = lastTurningPtr->index(0);
-                int  y_last = lastTurningPtr->index(1);
-                int  z_last = lastTurningPtr->index(2);
-                int  x_current = maxPtr->index(0);
-                int  y_current = maxPtr->index(1);
-                int  z_current = maxPtr->index(2);
-
-                for (int i=1;i<divide_num;i++)//i从1开始避免重点
-                {
-                    Vector3i temp_idx;
-                    temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
-                    temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
-                    temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
-
-                     GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
-                    //  auto endPtr=gridPath.end()-1;
-                    //  if(pushPtr->coord(0)==endPtr->coord(0))
-                    //     ROS_WARN("chong dian le !!!");
-                    // else
-                     gridPath.push_back(pushPtr);
-                }
-
-
-                // while(tempPtr!=maxPtr)
-                // {
-                //     temp_count++;
-                //     if(temp_count%gap==0)
-                //         gridPath.push_back(tempPtr);
-                //     tempPtr=tempPtr->cameFrom;
-                // }
-            }
-
-    
+        //              GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
+        //              gridPath.push_back(pushPtr);
+        //         }
+        //     }    
 
         lastTurningPtr=maxPtr;//更新最新的关键点
         temp_count=0;
@@ -711,20 +699,131 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
     {
         path.push_back(ptr->coord);//维护path
         ROS_INFO("coord_x=%f   y=%f   z=%f",ptr->coord(0),ptr->coord(1),ptr->coord(2));
-        // pt.pose.position.y =  ptr->coord(1);
-        // pt.pose.position.x =  ptr->coord(0);
-        // pt.pose.position.z =  ptr->coord(2);
-        // waypoints.poses.push_back(pt);//维护waypoints
     }
         
     reverse(path.begin(),path.end());//这步在可视化上没有区别
-    // reverse(waypoints.poses.begin(),waypoints.poses.end());
-    // pair<vector<Vector3d>,nav_msgs::Path> p;
-    // p=make_pair(path,waypoints);
-    // return p;//返回path和waypoints
+
+    //1.得到了第一次的关键点path
     return path;
 
 }
+
+
+// //输入A星得到的路径点，输出简化后的关键点
+// vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
+// {
+//     vector<Vector3d> path;
+//     vector<GridNodePtr> gridPath;
+
+//     GridNodePtr currentPtr=terminatePtr;//从终点开始往前找
+
+//     // GridNodePtr nextPtr=terminatePtr;//current的下一个节点（终点方向）(常规意义上的上一个节点)   
+//     //在这个函数里没啥用，不过还是维护了
+
+//     GridNodePtr lastPtr;//current的上一个节点（起点方向）（常规意义上的下一个节点）
+
+//     GridNodePtr lastTurningPtr=terminatePtr;//上一个关键点
+
+//     gridPath.push_back(lastTurningPtr);//终点肯定是关键点
+
+//     int line_point_count=0;
+//     int temp_count=0;
+//     while(currentPtr->cameFrom!=NULL)
+//     {
+//         GridNodePtr maxPtr=currentPtr->cameFrom;//初始化最远无碰节点
+//         while(currentPtr->cameFrom!=NULL)
+//         {
+//             temp_count++;
+//             lastPtr=currentPtr->cameFrom;   
+
+//             int  x1 = lastTurningPtr->index(0);
+//             int  y1 = lastTurningPtr->index(1);
+//             int  z1 = lastTurningPtr->index(2);
+//             int  x2 = lastPtr->index(0);
+//             int  y2 = lastPtr->index(1);
+//             int  z2 = lastPtr->index(2);
+
+//             int collision_flag=0;//碰撞标志位
+
+//             double divide_piece_num=20;//碰撞检测划分份数
+//             for (double k=0;k<1;k+=1.0/divide_piece_num)
+//             {
+//                 //得到等分点坐标
+//                 int x_check=int(x1*resolution_ratio+(double)k*(x2-x1)*resolution_ratio);
+//                 int y_check=int(y1*resolution_ratio+(double)k*(y2-y1)*resolution_ratio);
+//                 int z_check=int(z1*resolution_ratio+(double)k*(z2-z1)*resolution_ratio);
+//                 // ROS_INFO("check_x=%d   y=%d   z=%d",x_check,y_check,z_check);
+//                 if(if_collision(x_check,y_check,z_check))
+//                     collision_flag=1;
+//             }
+//             if(collision_flag==0)
+//             {
+//                 maxPtr=lastPtr;//若无碰，更新最大无碰节点
+//                 line_point_count=temp_count;
+//             }
+
+//             // nextPtr=currentPtr;//更新next
+//             currentPtr=lastPtr;//更新current
+
+//         }
+
+//         double default_resolution=0.2;
+//         int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
+
+//         if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+//             {
+//                 int divide_num=(int)line_point_count/point_gap_max+1;
+//                 int gap=(int)line_point_count/divide_num;
+//                 int temp_count=0;
+//                 // GridNodePtr tempPtr=lastTurningPtr;
+                
+
+
+//                 int  x_last = lastTurningPtr->index(0);
+//                 int  y_last = lastTurningPtr->index(1);
+//                 int  z_last = lastTurningPtr->index(2);
+//                 int  x_current = maxPtr->index(0);
+//                 int  y_current = maxPtr->index(1);
+//                 int  z_current = maxPtr->index(2);
+
+//                 for (int i=1;i<divide_num;i++)//i从1开始避免重点
+//                 {
+//                     Vector3i temp_idx;
+//                     temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
+//                     temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
+//                     temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
+
+//                      GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
+//                      gridPath.push_back(pushPtr);
+//                 }
+
+//             }
+
+    
+
+//         lastTurningPtr=maxPtr;//更新最新的关键点
+//         temp_count=0;
+//         line_point_count=0;
+//         gridPath.push_back(lastTurningPtr);//储存关键点
+//         currentPtr=maxPtr;//更新current
+
+//         // break;
+//     }
+//     // gridPath.push_back(currentPtr);
+    
+//     nav_msgs::Path waypoints;
+//     geometry_msgs::PoseStamped pt;
+
+//     for (auto ptr: gridPath)
+//     {
+//         path.push_back(ptr->coord);//维护path
+//         ROS_INFO("coord_x=%f   y=%f   z=%f",ptr->coord(0),ptr->coord(1),ptr->coord(2));
+//     }
+        
+//     reverse(path.begin(),path.end());//这步在可视化上没有区别
+//     return path;
+
+// }
 
 
 bool AstarPathFinder::if_collision(int x,int y,int z)
@@ -907,5 +1006,103 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints_by_lines()
         
     reverse(path.begin(),path.end());//这步在可视化上没有区别
     return path;
+
+}
+
+int my_inf=9999;
+bool tra_collision_flag=1;
+int first_key_point=my_inf;
+int second_key_point=my_inf;
+
+
+
+//迭代增加关键点
+vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3d>raw_path,visualization_msgs::Marker traj,int &flag)
+{
+    static int count=0;
+    count++;
+    if(count==1)
+    {
+        count=0;
+        flag=0;
+    }
+    // flag=0;
+    auto points=traj.points;
+    ROS_INFO("traj size= %d ",points.size());
+
+    int coll_order=0;
+    int collision_flag=0;
+    for (int i=0;i<points.size();i++)
+    {
+        Vector3d temp_coord(points[i].x,points[i].y,points[i].z);
+        // temp_coord
+        // ROS_INFO("traj X=%f  Y=%f  Z=%f  ",points[i].x,points[i].y,points[i].z);
+        // cout<<typeid(points[i]).name()<<endl;
+        auto temp_idx=coord2gridIndex(temp_coord);
+        if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
+        {
+            collision_flag=1;
+
+            double max_cos_theta=-100;
+
+            for (i=0;i<raw_path.size()-1;i++)
+            {
+                double dx1=temp_coord(0)-raw_path[i](0);
+                double dy1=temp_coord(1)-raw_path[i](1);
+                double dz1=temp_coord(2)-raw_path[i](2);
+                double d1=sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
+
+                double dx2=temp_coord(0)-raw_path[i+1](0);
+                double dy2=temp_coord(1)-raw_path[i+1](1);
+                double dz2=temp_coord(2)-raw_path[i+1](2);
+                double d2=sqrt(dx2*dx2+dy2*dy2+dz2*dz2);
+
+                double dx3=raw_path[i+1](0)-raw_path[i](0);
+                double dy3=raw_path[i+1](1)-raw_path[i](1);
+                double dz3=raw_path[i+1](2)-raw_path[i](2);
+                double d3=sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
+
+                double cos_theta=(d3*d3-d1*d1-d2*d2)/(2*d1*d2);
+
+                ROS_INFO("cos_theta=%f   ",cos_theta);
+
+                if(cos_theta>max_cos_theta)
+                {
+                    max_cos_theta=cos_theta;
+                    coll_order=i;
+                }
+
+            }
+            break;
+        }
+    }
+
+    if(collision_flag)
+    {
+        ROS_WARN("collision!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        double temp_x=(raw_path[coll_order+1](0)+raw_path[coll_order](0))/2;
+        double temp_y=(raw_path[coll_order+1](1)+raw_path[coll_order](1))/2;
+        double temp_z=(raw_path[coll_order+1](2)+raw_path[coll_order](2))/2;
+        Vector3d temp_p(temp_x,temp_y,temp_z);
+        auto loc=raw_path.begin()+coll_order;
+        raw_path.insert(loc,temp_p);
+        ROS_WARN("insertion suc!");
+    }
+
+    // ros::NodeHandle nh("~");
+    // ros::Subscriber trajectory_sub;
+    // trajectory_sub  = nh.subscribe( "/trajectory_generator_node/vis_trajectory",       1, TrajectoryCallBack );
+
+    // ros::Rate rate(100);
+    // bool status = ros::ok();
+    // while(status) 
+    // {
+    //     ros::spinOnce();      
+    //     status = ros::ok();
+    //     rate.sleep();
+    // }
+
+    // path_pub(raw_path);
+    return raw_path;
 
 }

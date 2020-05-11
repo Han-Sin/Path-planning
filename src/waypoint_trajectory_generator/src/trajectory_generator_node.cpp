@@ -182,13 +182,13 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
             if(true)
             {
                 Vector3d vel = getVelocity(polyCoeff, i, t);
-                ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
+                // ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
                 Vector3d acc = getAcc(polyCoeff,i,t);
                 vel_pub.push_back(vel);
                 acc_pub.push_back(acc);
-                if(t+0.01>=time(i))
-                    ROS_INFO(" ");
+                // if(t+0.01>=time(i))
+                //     ROS_INFO(" ");
             }
           pos = getPosPoly(polyCoeff, i, t);
           cur(0) = pt.x = pos(0);
