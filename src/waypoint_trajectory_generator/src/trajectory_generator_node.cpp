@@ -185,6 +185,8 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
                 ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
                 Vector3d acc = getAcc(polyCoeff,i,t);
+                vel_pub.push_back(vel);
+                acc_pub.push_back(acc);
                 if(t+0.01>=time(i))
                     ROS_INFO(" ");
             }
@@ -201,6 +203,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
     _wp_traj_vis_pub.publish(_traj_vis);
     _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+    _acc_pub.publish(vector3d_to_waypoints(acc_pub));
 }
 
 void visWayPointPath(MatrixXd path)
