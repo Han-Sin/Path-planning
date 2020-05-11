@@ -61,8 +61,12 @@ class AstarPathFinder
 		std::vector<Eigen::Vector3d> getPath();
 		std::vector<Eigen::Vector3d> getVisitedNodes();
 		std::vector<Eigen::Vector3d> getTurningPoints();
-		std::pair<std::vector<Eigen::Vector3d>,nav_msgs::Path>  getSimplifiedPoints();
+		// std::pair<std::vector<Eigen::Vector3d>,nav_msgs::Path>  getSimplifiedPoints();
+		std::vector<Eigen::Vector3d> getSimplifiedPoints();
+		std::vector<Eigen::Vector3d> getSimplifiedPoints_by_lines();
+		std::vector<Eigen::Vector3d> pathSimplify(const std::vector<Eigen::Vector3d> &path, const double path_resolution);
 		// void getTurningPoints();
+		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
 		bool if_collision(int x,int y,int z);
 };
 
