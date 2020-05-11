@@ -71,7 +71,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=0.5;
+    double expand_ratio=1;
 
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
@@ -656,14 +656,36 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
                 int divide_num=(int)line_point_count/point_gap_max+1;
                 int gap=(int)line_point_count/divide_num;
                 int temp_count=0;
-                GridNodePtr tempPtr=lastTurningPtr;
-                while(tempPtr!=maxPtr)
+                // GridNodePtr tempPtr=lastTurningPtr;
+                
+
+
+                int  x_last = lastTurningPtr->index(0);
+                int  y_last = lastTurningPtr->index(1);
+                int  z_last = lastTurningPtr->index(2);
+                int  x_current = maxPtr->index(0);
+                int  y_current = maxPtr->index(1);
+                int  z_current = maxPtr->index(2);
+
+                for (int i=0;i<divide_num;i++)
                 {
-                    temp_count++;
-                    if(temp_count%gap==0)
-                        gridPath.push_back(tempPtr);
-                    tempPtr=tempPtr->cameFrom;
+                    Vector3i temp_idx;
+                    temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
+                    temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
+                    temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
+
+                     GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
+                     gridPath.push_back(pushPtr);
                 }
+
+
+                // while(tempPtr!=maxPtr)
+                // {
+                //     temp_count++;
+                //     if(temp_count%gap==0)
+                //         gridPath.push_back(tempPtr);
+                //     tempPtr=tempPtr->cameFrom;
+                // }
             }
 
     

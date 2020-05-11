@@ -283,7 +283,7 @@ void visVisitedNode( vector<Vector3d> nodes )
     node_vis.pose.orientation.y = 0.0;
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
-    node_vis.color.a = 0.4;
+    node_vis.color.a = 0.8;
     node_vis.color.r = 1.0;
     node_vis.color.g = 0.0;
     node_vis.color.b = 0.0;
