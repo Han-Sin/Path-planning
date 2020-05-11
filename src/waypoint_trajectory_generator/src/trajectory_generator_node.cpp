@@ -28,7 +28,7 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub;
-    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub;
+    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub;
 
 // for planning
     int _poly_num1D;
@@ -45,6 +45,8 @@ using namespace Eigen;
     VectorXd timeAllocation( MatrixXd Path);
     void trajGeneration(Eigen::MatrixXd path);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
+
+    nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
 
 //Get the path points 
 void rcvWaypointsCallBack(const nav_msgs::Path & wp)
@@ -120,6 +122,7 @@ int main(int argc, char** argv)
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
+    _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
 
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -166,6 +169,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     Vector3d pos;
     geometry_msgs::Point pt;
 
+    vector<Vector3d> vel_pub;
 
     for(int i = 0; i < time.size(); i++ )
     {   
@@ -175,6 +179,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
             if(true)
             {
                 Vector3d vel = getVelocity(polyCoeff, i, t);
+                vel_pub.push_back(vel);
                 ROS_INFO_STREAM("VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
                 if(t+0.01>=time(i))
@@ -192,6 +197,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     }
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
     _wp_traj_vis_pub.publish(_traj_vis);
+    _vel_pub.publish(vector3d_to_waypoints(vel_pub));
 }
 
 void visWayPointPath(MatrixXd path)
@@ -311,8 +317,25 @@ VectorXd timeAllocation( MatrixXd Path)
         double t1 = _Vel / _Acc;
         double t2 = x2 / _Vel;
         time(i) = 2 * t1 + t2;
+
+        time(i)=time(i)*1;
         //time(i) = distance/_Vel;
     }
     
     return time;
+}
+
+nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
+{
+    nav_msgs::Path waypoints;
+    geometry_msgs::PoseStamped pt;
+
+    for (auto ptr: path)
+    {
+        pt.pose.position.y =  ptr(1);
+        pt.pose.position.x =  ptr(0);
+        pt.pose.position.z =  ptr(2);
+        waypoints.poses.push_back(pt);//维护waypoints
+    }
+    return waypoints;
 }
