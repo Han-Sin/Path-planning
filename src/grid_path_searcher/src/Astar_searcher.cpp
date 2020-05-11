@@ -667,7 +667,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
                 int  y_current = maxPtr->index(1);
                 int  z_current = maxPtr->index(2);
 
-                for (int i=0;i<divide_num;i++)
+                for (int i=1;i<divide_num;i++)//i从1开始避免重点
                 {
                     Vector3i temp_idx;
                     temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
@@ -675,6 +675,10 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
                     temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
 
                      GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
+                    //  auto endPtr=gridPath.end()-1;
+                    //  if(pushPtr->coord(0)==endPtr->coord(0))
+                    //     ROS_WARN("chong dian le !!!");
+                    // else
                      gridPath.push_back(pushPtr);
                 }
 
