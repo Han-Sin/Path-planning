@@ -28,7 +28,7 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub;
-    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub;
+    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub;
 
 // for planning
     int _poly_num1D;
@@ -42,7 +42,7 @@ using namespace Eigen;
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
-    Vector3d getAcc(MatrixXd _polyCoeff, int k, double t);
+    Vector3d getAcc(MatrixXd polyCoeff, int k, double t);
     VectorXd timeAllocation( MatrixXd Path);
     void trajGeneration(Eigen::MatrixXd path);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
@@ -124,6 +124,7 @@ int main(int argc, char** argv)
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
+    _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
 
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -171,6 +172,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     geometry_msgs::Point pt;
 
     vector<Vector3d> vel_pub;
+    vector<Vector3d> acc_pub;
 
     for(int i = 0; i < time.size(); i++ )
     {   
@@ -182,6 +184,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
                 Vector3d vel = getVelocity(polyCoeff, i, t);
                 ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
                 // ROS_INFO("time=%f",t);
+                Vector3d acc = getAcc(polyCoeff,i,t);
                 if(t+0.01>=time(i))
                     ROS_INFO(" ");
             }
@@ -301,6 +304,23 @@ Vector3d getVelocity(MatrixXd polyCoeff, int k, double t)
 		vel(dim) = coeff.dot(time);
 	}
 	return vel;
+}
+Vector3d getAcc(MatrixXd polyCoeff, int k, double t){
+    Vector3d Acc;
+	for (int dim = 0; dim < 3; dim++) {
+		VectorXd coeff = (polyCoeff.row(k)).segment(dim * _poly_num1D, _poly_num1D);
+		VectorXd time = VectorXd::Zero(_poly_num1D);
+		for (int j = 0; j < _poly_num1D; j++)
+			if (j == 0 || j==1)
+				time(j) = 0;
+			else if (j == 2)
+				time(j) = 2;
+			else
+				time(j) = pow(t, j-2)*j*(j-1);
+
+		Acc(dim) = coeff.dot(time);
+	}
+	return Acc;
 }
 
 VectorXd timeAllocation( MatrixXd Path)
