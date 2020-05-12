@@ -138,7 +138,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     //迭代加关键点
     auto temp_path=simplified_points_path;
-    int collision_flag=0;//1则打开迭代
+    int collision_flag=1;//1则打开迭代
     while(collision_flag)
     {
         _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
@@ -254,12 +254,12 @@ int main(int argc, char** argv)
     
     while(status) 
     {
-        ros::spinOnce();      
-        status = ros::ok();
-        rate.sleep();
-        // spinner.start();
+        // ros::spinOnce();      
         // status = ros::ok();
-        // ros::waitForShutdown();
+        // rate.sleep();
+        spinner.start();
+        status = ros::ok();
+        ros::waitForShutdown();
     }
     spinner.stop();
 

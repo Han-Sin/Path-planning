@@ -78,14 +78,14 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=0;
+    double expand_ratio=1;
 
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
     if(expand_size<=0)
-        expand_size=0;
+        expand_size=1;
 
-    if(idx_z==1)
+    // if(idx_z==1)
         // ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
 
     for (int i=-expand_size;i<=expand_size;i++)
@@ -117,11 +117,12 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
     idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
     
-    double expand_scale_ratio=0.5;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
+    // double expand_scale_ratio=2;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
     // double expand_ratio_high=1;
 
-    int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
-    
+    // int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
+    int high_expand_size=(int)expand_size*(2*resolution/high_resolution-1);
+
     static int cout_flag=1;
     if(cout_flag)
     {
@@ -651,8 +652,9 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
             
             double d=sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)+(z1-z2)*(z1-z2));
 
-            double divide_piece_num=d*2;//碰撞检测划分份数
-            // ROS_INFO("d=%f          ",d);
+            // double divide_piece_num=d*2;//碰撞检测划分份数
+            double divide_piece_num=1000;
+            ROS_INFO("d=%f         step=%f ",d,1.0/divide_piece_num);
             for (double k=0;k<1;k+=1.0/divide_piece_num)
             {
                 // //得到等分点坐标
@@ -671,7 +673,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
                 if(isOccupied(x_check,y_check,z_check))
                     {
                         collision_flag=1;
-                        // ROS_INFO("check_x=%d   y=%d   z=%d      x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
+                        ROS_INFO("check_x=%d   y=%d   z=%d    x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
                     }
             }
             if(collision_flag==0)

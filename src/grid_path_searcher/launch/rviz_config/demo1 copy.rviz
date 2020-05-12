@@ -4,16 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Status1
-        - /Grid1
-        - /AllMap1
         - /AllMap1/Autocompute Value Bounds1
-        - /Global Options1
-        - /Status1
-        - /Marker4
-        - /Marker5
-        - /Marker6
-        - /Marker7
+        - /visitedNodes1/Namespaces1
+        - /gridPath1/Namespaces1
       Splitter Ratio: 0.609022558
     Tree Height: 566
   - Class: rviz/Selection
@@ -38,7 +31,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 0.219999999
+      Cell Size: 0.200000003
       Class: rviz/Grid
       Color: 0; 0; 0
       Enabled: true
@@ -65,8 +58,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.842026
-        Min Value: 8.97418067e-05
+        Max Value: 1.89999998
+        Min Value: 0.100000001
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -90,50 +83,22 @@ Visualization Manager:
       Topic: /demo_node/grid_map_vis
       Unreliable: false
       Use Fixed Frame: true
-      Use rainbow: false
+      Use rainbow: true
       Value: true
-
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/visited_nodes_vis
       Name: visitedNodes
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath
       Namespaces:
         demo_node/jps_path: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /trajectory_generator_node/vis_trajectory
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /trajectory_generator_node/vis_trajectory2
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-
-      
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /trajectory_generator_node/vis_waypoint_path
-      Name: Marker
-      Namespaces:
-        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -154,25 +119,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.7227669
+      Distance: 9.74612236
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.779120147
-        Y: 0.152855009
-        Z: -0.0991418883
+        X: 2.19087362
+        Y: 0.484706104
+        Z: 0.618929148
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.974796236
+      Pitch: 1.56979632
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.30935645
+      Yaw: 3.77436399
     Saved:
       - Class: rviz/Orbit
         Distance: 79.2448425
@@ -255,5 +220,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 65
-  Y: 24
+  X: 142
+  Y: 69
