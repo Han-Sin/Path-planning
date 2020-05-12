@@ -683,7 +683,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
         double default_resolution=0.2;
         int point_gap_max=max_gap*(int)(default_resolution/resolution);//关键点间最大间隔数
 
-        if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+        /*if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
             {
                 int divide_num=(int)line_point_count/point_gap_max+1;
                 int gap=(int)line_point_count/divide_num;

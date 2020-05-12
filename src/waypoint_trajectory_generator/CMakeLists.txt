@@ -21,8 +21,25 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   nav_msgs
   quadrotor_msgs
+  message_generation 
+  std_msgs 
+  geometry_msgs
 )
-catkin_package()
+
+add_message_files(
+  FILES
+  trajpoint.msg
+  Trajectoy.msg
+  # Message2.msg
+)
+generate_messages(
+ DEPENDENCIES
+ geometry_msgs
+)
+
+catkin_package(
+CATKIN_DEPENDS message_runtime
+)
 
 find_package(Eigen3 REQUIRED)
 set(Eigen3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
@@ -40,3 +57,4 @@ add_executable(trajectory_generator_node
 target_link_libraries(trajectory_generator_node
    ${catkin_LIBRARIES}
 )
+

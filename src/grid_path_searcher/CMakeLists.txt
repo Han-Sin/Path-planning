@@ -5,7 +5,9 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp 
     std_msgs
     nav_msgs
-    visualization_msgs 
+    visualization_msgs
+    waypoint_trajectory_generator
+    geometry_msgs 
 )
 
 find_package(Eigen3 REQUIRED)

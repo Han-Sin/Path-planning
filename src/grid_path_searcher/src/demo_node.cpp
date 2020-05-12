@@ -13,7 +13,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
-
+#include <waypoint_trajectory_generator/trajpoint.h>
 #include "Astar_searcher.h"
 #include "JPS_searcher.h"
 #include "backward.hpp"
