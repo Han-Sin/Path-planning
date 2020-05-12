@@ -84,6 +84,8 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
     if(expand_size<=0)
         expand_size=1;
+    
+    expand_size=0;
 
     // if(idx_z==1)
         // ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
@@ -1139,6 +1141,9 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
         Vector3d temp_p(temp_x,temp_y,temp_z);
 
         auto add_point_idx=coord2gridIndex(temp_p);
+
+        temp_p=gridIndex2coord(add_point_idx);
+        
         if(isOccupied(add_point_idx[0],add_point_idx[1],add_point_idx[2]))//想加的点本身撞了
         {
             ROS_WARN("add point collision....................");
