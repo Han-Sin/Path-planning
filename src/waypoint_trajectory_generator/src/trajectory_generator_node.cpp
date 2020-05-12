@@ -394,8 +394,7 @@ VectorXd timeAllocation( MatrixXd Path)
         double x1 = _Vel * _Vel / (2 * _Acc); 
         double x2 = distance - 2 * x1;
         if(x2<=0){
-        // if(0){
-            time(i) = 2*distance/_Vel;
+            time(i) = 2*sqrt(distance/_Acc);
         }
         else{
             double t1 = _Vel / _Acc;
