@@ -27,8 +27,8 @@ using namespace Eigen;
     int    _dev_order, _min_order;
 
 // ros related
-    ros::Subscriber _way_pts_sub;
-    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub;
+    ros::Subscriber _way_pts_sub,_way_pts_sub2;
+    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2, _wp_path_vis_pub,  _vel_pub,_acc_pub;
 
 // for planning
     int _poly_num1D;
@@ -38,14 +38,15 @@ using namespace Eigen;
     Vector3d _startVel = Vector3d::Zero();
 
 // declare
-    void visWayPointTraj( MatrixXd polyCoeff, VectorXd time);
+    void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag);
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
     Vector3d getAcc(MatrixXd polyCoeff, int k, double t);
     VectorXd timeAllocation( MatrixXd Path);
-    void trajGeneration(Eigen::MatrixXd path);
+    void trajGeneration(Eigen::MatrixXd path,int flag);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
+    void rcvWaypointsCallBack2(const nav_msgs::Path & wp);
 
     nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
 
@@ -74,10 +75,39 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     
     //Trajectory generation: use minimum snap trajectory generation method
     //waypoints is the result of path planning (Manual in this homework)
-    trajGeneration(waypoints);
+    trajGeneration(waypoints,0);
 }
 
-void trajGeneration(Eigen::MatrixXd path)
+
+void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
+{   
+    vector<Vector3d> wp_list;
+    wp_list.clear();
+
+    for (int k = 0; k < (int)wp.poses.size(); k++)
+    {
+        Vector3d pt( wp.poses[k].pose.position.x, wp.poses[k].pose.position.y, wp.poses[k].pose.position.z);
+        wp_list.push_back(pt);
+
+        if(wp.poses[k].pose.position.z < 0.0)
+            break;
+    }
+
+    //MatrixXd waypoints(wp_list.size() + 1, 3);
+    //waypoints.row(0) = _startPos;
+    MatrixXd waypoints(wp_list.size(), 3);
+    //for(int k = 0; k < (int)wp_list.size(); k++)
+    //    waypoints.row(k+1) = wp_list[k];
+    for(int k = 0; k < (int)wp_list.size(); k++)
+        waypoints.row(k) = wp_list[k];
+    
+    //Trajectory generation: use minimum snap trajectory generation method
+    //waypoints is the result of path planning (Manual in this homework)
+    trajGeneration(waypoints,1);
+}
+
+
+void trajGeneration(Eigen::MatrixXd path,int flag=0)
 {
     TrajectoryGeneratorWaypoint  trajectoryGeneratorWaypoint;
     
@@ -93,7 +123,7 @@ void trajGeneration(Eigen::MatrixXd path)
     _polyCoeff = trajectoryGeneratorWaypoint.PolyQPGeneration(_dev_order, path, vel, acc, _polyTime);
 
     visWayPointPath(path);
-    visWayPointTraj( _polyCoeff, _polyTime);
+    visWayPointTraj( _polyCoeff, _polyTime,flag);
 }
 
 int main(int argc, char** argv)
@@ -120,8 +150,11 @@ int main(int argc, char** argv)
     _startVel(2)  = 0;
     
     _way_pts_sub     = nh.subscribe( "waypoints", 1, rcvWaypointsCallBack );
+    _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
+    _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
+
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
@@ -137,14 +170,18 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
+void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 {        
     visualization_msgs::Marker _traj_vis;
 
     _traj_vis.header.stamp       = ros::Time::now();
     _traj_vis.header.frame_id    = "world";
 
+    // if(flag==0)
     _traj_vis.ns = "traj_node/trajectory_waypoints";
+    // else if(flag==1)
+        // _traj_vis.ns = "traj_node/trajectory_waypoints2";
+
     _traj_vis.id = 0;
     _traj_vis.type = visualization_msgs::Marker::SPHERE_LIST;
     _traj_vis.action = visualization_msgs::Marker::ADD;
@@ -156,10 +193,21 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     _traj_vis.pose.orientation.z = 0.0;
     _traj_vis.pose.orientation.w = 1.0;
 
+    if(flag)
+    {
     _traj_vis.color.a = 1.0;
     _traj_vis.color.r = 1.0;
     _traj_vis.color.g = 0.0;
     _traj_vis.color.b = 0.0;
+    }
+
+    else if(flag==0)
+    {
+    _traj_vis.color.a = 1.0;
+    _traj_vis.color.r = 0.0;
+    _traj_vis.color.g = 0.0;
+    _traj_vis.color.b = 1.0;
+    }
 
     double traj_len = 0.0;
     int count = 0;
@@ -201,7 +249,10 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
         }
     }
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
-    _wp_traj_vis_pub.publish(_traj_vis);
+    if(flag)
+        _wp_traj_vis_pub.publish(_traj_vis);
+    else if(flag==0)
+        _wp_traj_vis_pub2.publish(_traj_vis);
     _vel_pub.publish(vector3d_to_waypoints(vel_pub));
     _acc_pub.publish(vector3d_to_waypoints(acc_pub));
 }
@@ -337,15 +388,61 @@ VectorXd timeAllocation( MatrixXd Path)
         double distance = (Path.row(i+1) - Path.row(i)).norm();    // or .lpNorm<2>()
         double x1 = _Vel * _Vel / (2 * _Acc); 
         double x2 = distance - 2 * x1;
-        double t1 = _Vel / _Acc;
+        if(0)
+        // if(x2<=0)
+        {
+            time(i)=2*distance/_Vel;
+        }
+        else{
+                    double t1 = _Vel / _Acc;
         double t2 = x2 / _Vel;
         time(i) = 2 * t1 + t2;
         time(i)=time(i)*1;
+        }
+
         //time(i) = distance/_Vel;
     }
     
     return time;
 }
+
+
+// VectorXd timeAllocation( MatrixXd Path)
+// { 
+//     VectorXd time(Path.rows() - 1);
+
+//     for (int k = 0; k < (Path.rows() - 1); k++)
+//     {
+//         double dtxyz;
+
+//         Vector3d p0   = Path.row(k);        
+//         Vector3d p1   = Path.row(k + 1);    
+//         double D    = (p1 - p0).norm();             
+
+//         double acct = (_Vel) / _Acc;
+//         double accd = (_Acc * acct * acct / 2);
+//         double dcct = _Vel / _Acc;                                  
+//         double dccd = _Acc * dcct * dcct / 2;                           
+
+//         if (D < accd + dccd)
+//         {   
+//             double t1 = sqrt( _Acc * D ) / _Acc;
+//             double t2 = (_Acc * t1) / _Acc;
+//             dtxyz     = t1 + t2;    
+//         }
+//         else
+//         {                                        
+//             double t1 = acct;                              
+//             double t2 = (D - accd - dccd) / _Vel;
+//             double t3 = dcct;
+//             dtxyz     = t1 + t2 + t3;                                                                  
+//         }
+
+//         time(k) = dtxyz;
+//     }
+
+//     return time;
+// }
 
 nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
 {

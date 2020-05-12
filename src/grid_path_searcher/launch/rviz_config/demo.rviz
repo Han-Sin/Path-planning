@@ -117,6 +117,17 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory_generator_node/vis_trajectory2
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
+      
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /trajectory_generator_node/vis_waypoint_path

@@ -81,6 +81,9 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     if(expand_size<=0)
         expand_size=1;
 
+    if(idx_z==1)
+        ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
+
     for (int i=-expand_size;i<=expand_size;i++)
         for (int j=-expand_size;j<=expand_size;j++)
             for (int k=-expand_size;k<=expand_size;k++)
@@ -110,11 +113,17 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
     idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
     
-    double expand_scale_ratio=1;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
+    double expand_scale_ratio=0.5;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
     // double expand_ratio_high=1;
 
     int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
-    // ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
+    
+    static int cout_flag=1;
+    if(cout_flag)
+    {
+        ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
+        cout_flag=0;
+    }
     for (int i=-high_expand_size;i<=high_expand_size;i++)
         for (int j=-high_expand_size;j<=high_expand_size;j++)
             for (int k=-high_expand_size;k<=high_expand_size;k++)
@@ -596,7 +605,7 @@ vector<Vector3d> AstarPathFinder::getTurningPoints()
 
 
 //输入A星得到的路径点，输出简化后的关键点
-vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
+vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
 {
     vector<Vector3d> path;
     vector<GridNodePtr> gridPath;
@@ -629,18 +638,37 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
             int  y2 = lastPtr->index(1);
             int  z2 = lastPtr->index(2);
 
+            if(if_collision(x1*resolution_ratio,y1*resolution_ratio,z1*resolution_ratio))
+                ROS_WARN("key node collision???????????????????????????????");
+
             int collision_flag=0;//碰撞标志位
 
-            double divide_piece_num=20;//碰撞检测划分份数
+            // double divide_piece_num=40;//碰撞检测划分份数
+            
+            double d=sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)+(z1-z2)*(z1-z2));
+
+            double divide_piece_num=d*2;//碰撞检测划分份数
+            // ROS_INFO("d=%f          ",d);
             for (double k=0;k<1;k+=1.0/divide_piece_num)
             {
-                //得到等分点坐标
-                int x_check=int(x1*resolution_ratio+(double)k*(x2-x1)*resolution_ratio);
-                int y_check=int(y1*resolution_ratio+(double)k*(y2-y1)*resolution_ratio);
-                int z_check=int(z1*resolution_ratio+(double)k*(z2-z1)*resolution_ratio);
-                // ROS_INFO("check_x=%d   y=%d   z=%d",x_check,y_check,z_check);
-                if(if_collision(x_check,y_check,z_check))
-                    collision_flag=1;
+                // //得到等分点坐标
+                // int x_check=int(x1*resolution_ratio+(double)k*(x2-x1)*resolution_ratio);
+                // int y_check=int(y1*resolution_ratio+(double)k*(y2-y1)*resolution_ratio);
+                // int z_check=int(z1*resolution_ratio+(double)k*(z2-z1)*resolution_ratio);
+                // // ROS_INFO("check_x=%d   y=%d   z=%d",x_check,y_check,z_check);
+                // if(if_collision(x_check,y_check,z_check))
+                //     collision_flag=1;
+
+                 //得到等分点坐标    原始地图
+                int x_check=int(x1+(double)k*(x2-x1));
+                int y_check=int(y1+(double)k*(y2-y1));
+                int z_check=int(z1+(double)k*(z2-z1));
+
+                if(isOccupied(x_check,y_check,z_check))
+                    {
+                        collision_flag=1;
+                        ROS_INFO("check_x=%d   y=%d   z=%d      x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
+                    }
             }
             if(collision_flag==0)
             {
@@ -650,37 +678,36 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
 
             // nextPtr=currentPtr;//更新next
             currentPtr=lastPtr;//更新current
-
         }
 
-        // double default_resolution=0.2;
-        // int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
+        double default_resolution=0.2;
+        int point_gap_max=max_gap*(int)(default_resolution/resolution);//关键点间最大间隔数
 
-        // if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
-        //     {
-        //         int divide_num=(int)line_point_count/point_gap_max+1;
-        //         int gap=(int)line_point_count/divide_num;
-        //         int temp_count=0;
-        //         // GridNodePtr tempPtr=lastTurningPtr;
+        if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+            {
+                int divide_num=(int)line_point_count/point_gap_max+1;
+                int gap=(int)line_point_count/divide_num;
+                int temp_count=0;
+                // GridNodePtr tempPtr=lastTurningPtr;
                 
-        //         int  x_last = lastTurningPtr->index(0);
-        //         int  y_last = lastTurningPtr->index(1);
-        //         int  z_last = lastTurningPtr->index(2);
-        //         int  x_current = maxPtr->index(0);
-        //         int  y_current = maxPtr->index(1);
-        //         int  z_current = maxPtr->index(2);
+                int  x_last = lastTurningPtr->index(0);
+                int  y_last = lastTurningPtr->index(1);
+                int  z_last = lastTurningPtr->index(2);
+                int  x_current = maxPtr->index(0);
+                int  y_current = maxPtr->index(1);
+                int  z_current = maxPtr->index(2);
 
-        //         for (int i=1;i<divide_num;i++)//i从1开始避免重点
-        //         {
-        //             Vector3i temp_idx;
-        //             temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
-        //             temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
-        //             temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
+                for (int i=1;i<divide_num;i++)//i从1开始避免重点
+                {
+                    Vector3i temp_idx;
+                    temp_idx(0)=(int)(x_last+(double)(x_current-x_last)*(double)i/divide_num);
+                    temp_idx(1)=(int)(y_last+(double)(y_current-y_last)*(double)i/divide_num);
+                    temp_idx(2)=(int)(z_last+(double)(z_current-z_last)*(double)i/divide_num);
 
-        //              GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
-        //              gridPath.push_back(pushPtr);
-        //         }
-        //     }    
+                     GridNodePtr pushPtr = new GridNode(temp_idx, gridIndex2coord(temp_idx));
+                     gridPath.push_back(pushPtr);
+                }
+            }    
 
         lastTurningPtr=maxPtr;//更新最新的关键点
         temp_count=0;

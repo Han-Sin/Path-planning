@@ -55,6 +55,7 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "core": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "iterator": "cpp"
     }
 }

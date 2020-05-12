@@ -4,9 +4,9 @@
 <arg name="map_size_y" default="10.0"/>
 <arg name="map_size_z" default=" 2.0"/>
 
-<arg name="start_x" default=" 0.0"/>
+<arg name="start_x" default=" 4.0"/>
 <arg name="start_y" default=" 0.0"/>
-<arg name="start_z" default=" 1.0"/>
+<arg name="start_z" default=" 0.0"/>
 
   <!-- Start rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen"
@@ -38,7 +38,7 @@
       <param name="map/z_size"     value="$(arg map_size_z)" />
 
       <param name="map/circle_num" value="0"/>        
-      <param name="map/obs_num"    value="50"/>        
+      <param name="map/obs_num"    value="40"/>        
       <param name="map/resolution" value="0.1"/>        
 
       <param name="ObstacleShape/lower_rad" value="0.1"/>
@@ -63,7 +63,7 @@
       <remap from="~odom"      to="/msckf_vio/odometry"/>
       <remap from="~joy"      to="/djiros/rc"/>
       
-      <param name="planning/vel"       value="1"  />
+      <param name="planning/vel"       value="5"  />
       <param name="planning/acc"       value="5"  />
       <param name="planning/dev_order" value="4"    />
       <param name="planning/min_order" value="3"    />
