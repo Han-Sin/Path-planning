@@ -624,7 +624,6 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
             int  z2 = lastPtr->index(2);
 
             int collision_flag=0;//碰撞标志位
-
             double divide_piece_num=20;//碰撞检测划分份数
             for (double k=0;k<1;k+=1.0/divide_piece_num)
             {
@@ -633,8 +632,11 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
                 int y_check=int(y1*resolution_ratio+(double)k*(y2-y1)*resolution_ratio);
                 int z_check=int(z1*resolution_ratio+(double)k*(z2-z1)*resolution_ratio);
                 // ROS_INFO("check_x=%d   y=%d   z=%d",x_check,y_check,z_check);
-                if(if_collision(x_check,y_check,z_check))
+                if(if_collision(x_check,y_check,z_check)){
                     collision_flag=1;
+                    break;
+                }
+                    
             }
             if(collision_flag==0)
             {
@@ -651,7 +653,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
         double default_resolution=0.2;
         int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
 
-        if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+        /*if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
             {
                 int divide_num=(int)line_point_count/point_gap_max+1;
                 int gap=(int)line_point_count/divide_num;
@@ -691,7 +693,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints()
                 //     tempPtr=tempPtr->cameFrom;
                 // }
             }
-
+            */
     
 
         lastTurningPtr=maxPtr;//更新最新的关键点

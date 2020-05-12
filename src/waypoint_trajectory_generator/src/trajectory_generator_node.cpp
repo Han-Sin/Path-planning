@@ -13,7 +13,8 @@
 #include <visualization_msgs/Marker.h>
 #include <sensor_msgs/Joy.h>
 #include <algorithm>
-
+#include <waypoint_trajectory_generator/Trajectoy.h>
+#include <waypoint_trajectory_generator/trajpoint.h>
 //#include <quadrotor_msgs/PolynomialTrajectory.h>
 // Useful customized headers
 #include "trajectory_generator_waypoint.h"
@@ -28,7 +29,7 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub;
-    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub;
+    ros::Publisher  _wp_traj_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub,_points_pub;
 
 // for planning
     int _poly_num1D;
@@ -125,6 +126,7 @@ int main(int argc, char** argv)
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
+    _points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
 
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -140,10 +142,10 @@ int main(int argc, char** argv)
 void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
 {        
     visualization_msgs::Marker _traj_vis;
-
     _traj_vis.header.stamp       = ros::Time::now();
     _traj_vis.header.frame_id    = "world";
-
+    waypoint_trajectory_generator::Trajectoy _traj;
+    _traj.traj_points.clear();
     _traj_vis.ns = "traj_node/trajectory_waypoints";
     _traj_vis.id = 0;
     _traj_vis.type = visualization_msgs::Marker::SPHERE_LIST;
@@ -195,7 +197,10 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
           cur(1) = pt.y = pos(1);
           cur(2) = pt.z = pos(2);
           _traj_vis.points.push_back(pt);
-
+          waypoint_trajectory_generator::trajpoint traj_point;
+          traj_point.seg = i;
+          traj_point.point = pt;
+          _traj.traj_points.push_back(traj_point);
           if (count) traj_len += (pre - cur).norm();
           pre = cur;
         }
@@ -204,6 +209,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time)
     _wp_traj_vis_pub.publish(_traj_vis);
     _vel_pub.publish(vector3d_to_waypoints(vel_pub));
     _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+    _points_pub.publish(_traj);
 }
 
 void visWayPointPath(MatrixXd path)
@@ -337,10 +343,14 @@ VectorXd timeAllocation( MatrixXd Path)
         double distance = (Path.row(i+1) - Path.row(i)).norm();    // or .lpNorm<2>()
         double x1 = _Vel * _Vel / (2 * _Acc); 
         double x2 = distance - 2 * x1;
-        double t1 = _Vel / _Acc;
-        double t2 = x2 / _Vel;
-        time(i) = 2 * t1 + t2;
-        time(i)=time(i)*1;
+        if(x2<=0){
+            time(i) = 2*distance/_Vel;
+        }
+        else{
+            double t1 = _Vel / _Acc;
+            double t2 = x2 / _Vel;
+            time(i) = 2 * t1 + t2;;
+        }
         //time(i) = distance/_Vel;
     }
     
