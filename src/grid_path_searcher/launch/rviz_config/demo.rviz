@@ -85,7 +85,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.200000003
+      Size (m): 0.100000003
       Style: Boxes
       Topic: /random_complex/global_map
       Unreliable: false

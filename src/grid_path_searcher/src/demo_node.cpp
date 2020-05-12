@@ -139,9 +139,11 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
         rate.sleep();
         temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
         visVisitedNode(temp_path);
+        // ros::Rate rate(50);//等待traj_generator_node发送回来traj
+        rate.sleep();
     }
     _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-
+    visVisitedNode(temp_path);
 
     // _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
@@ -236,8 +238,6 @@ int main(int argc, char** argv)
 
 
 
-
-
     ros::Rate rate(100);
     bool status = ros::ok();
 
@@ -249,8 +249,10 @@ int main(int argc, char** argv)
         // status = ros::ok();
         // rate.sleep();
         spinner.start();
+        status = ros::ok();
         ros::waitForShutdown();
     }
+    spinner.stop();
 
     delete _astar_path_finder;
     delete _jps_path_finder;

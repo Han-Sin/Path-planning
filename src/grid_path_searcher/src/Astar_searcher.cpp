@@ -1104,10 +1104,18 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
     
     flag=collision_flag;
     if(collision_flag==0)
+    {
+        ROS_WARN("safe traj sucucess!");
+        ROS_INFO("inserted  %d   points",add_point_count);
         add_point_count=0;
+    }
         
     if(add_point_count>10)
+    {
         flag=0;
+        ROS_WARN("over insertion!!!");
+        add_point_count=0;
+    }
 
     // ros::NodeHandle nh("~");
     // ros::Subscriber trajectory_sub;
