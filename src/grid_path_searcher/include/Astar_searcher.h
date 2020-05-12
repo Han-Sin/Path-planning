@@ -10,6 +10,9 @@
 #include "backward.hpp"
 #include "node.h"
 #include <visualization_msgs/Marker.h>
+#include <waypoint_trajectory_generator/Trajectoy.h>
+#include <waypoint_trajectory_generator/trajpoint.h>
+
 
 class AstarPathFinder
 {	
@@ -19,7 +22,7 @@ class AstarPathFinder
 		uint8_t * data;
 
 		uint8_t * data_high_resolution;
-		int resolution_ratio=4;//4
+		int resolution_ratio=1;//4
 
 		GridNodePtr *** GridNodeMap;
 		Eigen::Vector3i goalIdx;
@@ -70,7 +73,7 @@ class AstarPathFinder
 		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
 		bool if_collision(int x,int y,int z);
 
-		std::vector<Eigen::Vector3d> recursive_get_simplified_points(std::vector<Eigen::Vector3d>raw_path,visualization_msgs::Marker traj_global,int &flag);
+		std::vector<Eigen::Vector3d> recursive_get_simplified_points(std::vector<Eigen::Vector3d>raw_path,waypoint_trajectory_generator::Trajectoy traj_global,int &flag);
 };
 
 #endif

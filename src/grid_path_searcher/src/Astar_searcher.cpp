@@ -3,6 +3,10 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <utility>
+#include <waypoint_trajectory_generator/Trajectoy.h>
+#include <waypoint_trajectory_generator/trajpoint.h>
+
+
 using namespace std;
 using namespace Eigen;
 
@@ -74,15 +78,15 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=1;
+    double expand_ratio=0;
 
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
     if(expand_size<=0)
-        expand_size=1;
+        expand_size=0;
 
     if(idx_z==1)
-        ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
+        // ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
 
     for (int i=-expand_size;i<=expand_size;i++)
         for (int j=-expand_size;j<=expand_size;j++)
@@ -667,7 +671,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
                 if(isOccupied(x_check,y_check,z_check))
                     {
                         collision_flag=1;
-                        ROS_INFO("check_x=%d   y=%d   z=%d      x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
+                        // ROS_INFO("check_x=%d   y=%d   z=%d      x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
                     }
             }
             if(collision_flag==0)
@@ -683,7 +687,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
         double default_resolution=0.2;
         int point_gap_max=max_gap*(int)(default_resolution/resolution);//关键点间最大间隔数
 
-        /*if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
+        if(line_point_count>point_gap_max)//如果直线太长，等分成若干份
             {
                 int divide_num=(int)line_point_count/point_gap_max+1;
                 int gap=(int)line_point_count/divide_num;
@@ -1044,7 +1048,7 @@ int second_key_point=my_inf;
 
 
 //迭代增加关键点
-vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3d>raw_path,visualization_msgs::Marker traj,int &flag)
+vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3d>raw_path,waypoint_trajectory_generator::Trajectoy  traj,int &flag)
 {
     // static int count=0;
     // count++;
@@ -1057,71 +1061,87 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
 
     static int add_point_count=0;
 
-    auto points=traj.points;
-    ROS_INFO("traj size= %d ",points.size());
+    auto points=traj.traj_points;
+    // auto segs=traj.traj_points[0].seg;
+
+    ROS_INFO("size=%d",traj.traj_points.size());
+    // ROS_INFO("traj size= %d ",sizeof(points)/sizeof(points[0]));
+    ROS_INFO("traj_x=%f    y=%f   z=%f   ",points[1].point.x,points[1].point.y,points[1].point.z);
 
     int coll_order=0;
     int collision_flag=0;
-    for (int i=0;i<points.size();i++)
+    int coll_point_order=0;
+    for (int i=0;i<traj.traj_points.size();i++)
     {
-        Vector3d temp_coord(points[i].x,points[i].y,points[i].z);
+        Vector3d temp_coord(points[i].point.x,points[i].point.y,points[i].point.z);
         // temp_coord
         // ROS_INFO("traj X=%f  Y=%f  Z=%f  ",points[i].x,points[i].y,points[i].z);
         // cout<<typeid(points[i]).name()<<endl;
         auto temp_idx=coord2gridIndex(temp_coord);
-        if(if_collision(temp_idx[0]*resolution_ratio,temp_idx[1]*resolution_ratio,temp_idx[2]*resolution_ratio))
-        // if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
+
+        //撞了
+        // if(if_collision(temp_idx[0]*resolution_ratio,temp_idx[1]*resolution_ratio,temp_idx[2]*resolution_ratio))
+        if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
         {
             collision_flag=1;
+            coll_point_order=i;
 
-            ROS_WARN("collision point is x=%f  y=%f  z=%f  ",points[i].x,points[i].y,points[i].z);
+            ROS_WARN("collision point is x=%f  y=%f  z=%f  ",points[i].point.x,points[i].point.y,points[i].point.z);
 
-            double max_cos_theta=-100;
-            double min_cos_theta=100;
+            // double max_cos_theta=-100;
+            // double min_cos_theta=100;
 
-            for (i=0;i<raw_path.size()-1;i++)
-            {
-                double dx1=temp_coord(0)-raw_path[i](0);
-                double dy1=temp_coord(1)-raw_path[i](1);
-                double dz1=temp_coord(2)-raw_path[i](2);
-                double d1=sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
+            // for (i=0;i<raw_path.size()-1;i++)
+            // {
+            //     double dx1=temp_coord(0)-raw_path[i](0);
+            //     double dy1=temp_coord(1)-raw_path[i](1);
+            //     double dz1=temp_coord(2)-raw_path[i](2);
+            //     double d1=sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
 
-                double dx2=temp_coord(0)-raw_path[i+1](0);
-                double dy2=temp_coord(1)-raw_path[i+1](1);
-                double dz2=temp_coord(2)-raw_path[i+1](2);
-                double d2=sqrt(dx2*dx2+dy2*dy2+dz2*dz2);
+            //     double dx2=temp_coord(0)-raw_path[i+1](0);
+            //     double dy2=temp_coord(1)-raw_path[i+1](1);
+            //     double dz2=temp_coord(2)-raw_path[i+1](2);
+            //     double d2=sqrt(dx2*dx2+dy2*dy2+dz2*dz2);
 
-                double dx3=raw_path[i+1](0)-raw_path[i](0);
-                double dy3=raw_path[i+1](1)-raw_path[i](1);
-                double dz3=raw_path[i+1](2)-raw_path[i](2);
-                double d3=sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
+            //     double dx3=raw_path[i+1](0)-raw_path[i](0);
+            //     double dy3=raw_path[i+1](1)-raw_path[i](1);
+            //     double dz3=raw_path[i+1](2)-raw_path[i](2);
+            //     double d3=sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
 
-                double cos_theta=(-d3*d3+d1*d1+d2*d2)/(2*d1*d2);
+            //     double cos_theta=(-d3*d3+d1*d1+d2*d2)/(2*d1*d2);
 
-                ROS_INFO("cos_theta=%f   d1=%f  d2=%f  d3=%f  i=%d",cos_theta,i,d1,d2,d3);
+            //     ROS_INFO("cos_theta=%f   d1=%f  d2=%f  d3=%f  i=%d",cos_theta,i,d1,d2,d3);
 
-                // if(cos_theta>max_cos_theta)
-                // {
-                //     max_cos_theta=cos_theta;
-                //     coll_order=i;
-                // }
-                if(cos_theta<min_cos_theta)
-                {
-                    min_cos_theta=cos_theta;
-                    coll_order=i;
-                }
-            }
+            //     // if(cos_theta>max_cos_theta)
+            //     // {
+            //     //     max_cos_theta=cos_theta;
+            //     //     coll_order=i;
+            //     // }
+            //     if(cos_theta<min_cos_theta)
+            //     {
+            //         min_cos_theta=cos_theta;
+            //         coll_order=i;
+            //     }
+            // }
             break;
         }
     }
 
     if(collision_flag)
     {
+        coll_order=traj.traj_points[coll_point_order].seg;
         ROS_WARN("collision!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         double temp_x=(raw_path[coll_order+1](0)+raw_path[coll_order](0))/2;
         double temp_y=(raw_path[coll_order+1](1)+raw_path[coll_order](1))/2;
         double temp_z=(raw_path[coll_order+1](2)+raw_path[coll_order](2))/2;
         Vector3d temp_p(temp_x,temp_y,temp_z);
+
+        auto add_point_idx=coord2gridIndex(temp_p);
+        if(isOccupied(add_point_idx[0],add_point_idx[1],add_point_idx[2]))//想加的点本身撞了
+        {
+            ROS_WARN("add point collision....................");
+        }
+
         auto loc=raw_path.begin()+coll_order+1;
         ROS_WARN("insertion suc!   pos=%d  parent1_x=%f   parent2_x=%f",coll_order,raw_path[coll_order+1](0),raw_path[coll_order](0));
         raw_path.insert(loc,temp_p);
@@ -1161,3 +1181,124 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
     return raw_path;
 
 }
+
+
+
+// //迭代增加关键点
+// vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3d>raw_path,visualization_msgs::Marker traj,int &flag)
+// {
+//     // static int count=0;
+//     // count++;
+//     // if(count==1)
+//     // {
+//     //     count=0;
+//     //     flag=0;
+//     // }
+//     // flag=0;
+
+//     static int add_point_count=0;
+
+//     auto points=traj.points;
+//     ROS_INFO("traj size= %d ",points.size());
+
+//     int coll_order=0;
+//     int collision_flag=0;
+//     for (int i=0;i<points.size();i++)
+//     {
+//         Vector3d temp_coord(points[i].x,points[i].y,points[i].z);
+//         // temp_coord
+//         // ROS_INFO("traj X=%f  Y=%f  Z=%f  ",points[i].x,points[i].y,points[i].z);
+//         // cout<<typeid(points[i]).name()<<endl;
+//         auto temp_idx=coord2gridIndex(temp_coord);
+//         if(if_collision(temp_idx[0]*resolution_ratio,temp_idx[1]*resolution_ratio,temp_idx[2]*resolution_ratio))
+//         // if(isOccupied(temp_idx[0],temp_idx[1],temp_idx[2]))
+//         {
+//             collision_flag=1;
+
+//             ROS_WARN("collision point is x=%f  y=%f  z=%f  ",points[i].x,points[i].y,points[i].z);
+
+//             double max_cos_theta=-100;
+//             double min_cos_theta=100;
+
+//             for (i=0;i<raw_path.size()-1;i++)
+//             {
+//                 double dx1=temp_coord(0)-raw_path[i](0);
+//                 double dy1=temp_coord(1)-raw_path[i](1);
+//                 double dz1=temp_coord(2)-raw_path[i](2);
+//                 double d1=sqrt(dx1*dx1+dy1*dy1+dz1*dz1);
+
+//                 double dx2=temp_coord(0)-raw_path[i+1](0);
+//                 double dy2=temp_coord(1)-raw_path[i+1](1);
+//                 double dz2=temp_coord(2)-raw_path[i+1](2);
+//                 double d2=sqrt(dx2*dx2+dy2*dy2+dz2*dz2);
+
+//                 double dx3=raw_path[i+1](0)-raw_path[i](0);
+//                 double dy3=raw_path[i+1](1)-raw_path[i](1);
+//                 double dz3=raw_path[i+1](2)-raw_path[i](2);
+//                 double d3=sqrt(dx3*dx3+dy3*dy3+dz3*dz3);
+
+//                 double cos_theta=(-d3*d3+d1*d1+d2*d2)/(2*d1*d2);
+
+//                 ROS_INFO("cos_theta=%f   d1=%f  d2=%f  d3=%f  i=%d",cos_theta,i,d1,d2,d3);
+
+//                 // if(cos_theta>max_cos_theta)
+//                 // {
+//                 //     max_cos_theta=cos_theta;
+//                 //     coll_order=i;
+//                 // }
+//                 if(cos_theta<min_cos_theta)
+//                 {
+//                     min_cos_theta=cos_theta;
+//                     coll_order=i;
+//                 }
+//             }
+//             break;
+//         }
+//     }
+
+//     if(collision_flag)
+//     {
+//         ROS_WARN("collision!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//         double temp_x=(raw_path[coll_order+1](0)+raw_path[coll_order](0))/2;
+//         double temp_y=(raw_path[coll_order+1](1)+raw_path[coll_order](1))/2;
+//         double temp_z=(raw_path[coll_order+1](2)+raw_path[coll_order](2))/2;
+//         Vector3d temp_p(temp_x,temp_y,temp_z);
+//         auto loc=raw_path.begin()+coll_order+1;
+//         ROS_WARN("insertion suc!   pos=%d  parent1_x=%f   parent2_x=%f",coll_order,raw_path[coll_order+1](0),raw_path[coll_order](0));
+//         raw_path.insert(loc,temp_p);
+//         ROS_WARN("inserted point is x=%f  y=%f   z=%f   ",temp_x,temp_y,temp_z);
+//         add_point_count++;
+//     }
+    
+//     flag=collision_flag;
+//     if(collision_flag==0)
+//     {
+//         ROS_WARN("safe traj sucucess!");
+//         ROS_INFO("inserted  %d   points",add_point_count);
+//         add_point_count=0;
+//     }
+        
+//     if(add_point_count>10)
+//     {
+//         flag=0;
+//         ROS_WARN("over insertion!!!");
+//         add_point_count=0;
+//     }
+
+//     // ros::NodeHandle nh("~");
+//     // ros::Subscriber trajectory_sub;
+//     // trajectory_sub  = nh.subscribe( "/trajectory_generator_node/vis_trajectory",       1, TrajectoryCallBack );
+
+//     // ros::Rate rate(100);
+//     // bool status = ros::ok();
+//     // while(status) 
+//     // {
+//     //     ros::spinOnce();      
+//     //     status = ros::ok();
+//     //     rate.sleep();
+//     // }
+
+//     // path_pub(raw_path);
+//     return raw_path;
+
+// }

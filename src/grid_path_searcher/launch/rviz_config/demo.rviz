@@ -87,7 +87,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.100000003
       Style: Boxes
-      Topic: /random_complex/global_map
+      Topic: /demo_node/grid_map_vis
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
