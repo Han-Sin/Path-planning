@@ -69,8 +69,6 @@ void rcvVelCallBack(nav_msgs::Path vel)
             vector<Vector3d> drone_pos;
             drone_pos.push_back(current_pos);
             visVisitedNode(drone_pos);
-
-            // ROS_INFO("v_mode=%f   ",v_mod);
             ros::Rate rate(100);
             rate.sleep();
         }
@@ -116,10 +114,6 @@ int main(int argc, char** argv)
         ros::spinOnce();      
         status = ros::ok();
         rate.sleep();
-        // spinner.start();
-        // status = ros::ok();
-        // ros::waitForShutdown();
-        // ROS_INFO("drone check !!!   ");
     }
     // spinner.stop();
 
