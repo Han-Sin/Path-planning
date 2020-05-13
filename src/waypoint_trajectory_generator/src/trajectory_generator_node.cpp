@@ -114,61 +114,6 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 }
 
 
-void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
-{   
-    vector<Vector3d> wp_list;
-    wp_list.clear();
-
-    for (int k = 0; k < (int)wp.poses.size(); k++)
-    {
-        Vector3d pt( wp.poses[k].pose.position.x, wp.poses[k].pose.position.y, wp.poses[k].pose.position.z);
-        wp_list.push_back(pt);
-
-        if(wp.poses[k].pose.position.z < 0.0)
-            break;
-    }
-
-    //MatrixXd waypoints(wp_list.size() + 1, 3);
-    //waypoints.row(0) = _startPos;
-    MatrixXd waypoints(wp_list.size(), 3);
-    //for(int k = 0; k < (int)wp_list.size(); k++)
-    //    waypoints.row(k+1) = wp_list[k];
-    for(int k = 0; k < (int)wp_list.size(); k++)
-        waypoints.row(k) = wp_list[k];
-    
-    //Trajectory generation: use minimum snap trajectory generation method
-    //waypoints is the result of path planning (Manual in this homework)
-    trajGeneration(waypoints,1);
-}
-
-
-void rcvWaypointsCallBack3(const nav_msgs::Path & wp)
-{   
-    vector<Vector3d> wp_list;
-    wp_list.clear();
-
-    for (int k = 0; k < (int)wp.poses.size(); k++)
-    {
-        Vector3d pt( wp.poses[k].pose.position.x, wp.poses[k].pose.position.y, wp.poses[k].pose.position.z);
-        wp_list.push_back(pt);
-
-        if(wp.poses[k].pose.position.z < 0.0)
-            break;
-    }
-
-    //MatrixXd waypoints(wp_list.size() + 1, 3);
-    //waypoints.row(0) = _startPos;
-    MatrixXd waypoints(wp_list.size(), 3);
-    //for(int k = 0; k < (int)wp_list.size(); k++)
-    //    waypoints.row(k+1) = wp_list[k];
-    for(int k = 0; k < (int)wp_list.size(); k++)
-        waypoints.row(k) = wp_list[k];
-    
-    //Trajectory generation: use minimum snap trajectory generation method
-    //waypoints is the result of path planning (Manual in this homework)
-    trajGeneration(waypoints,2);
-}
-
 
 void trajGeneration(Eigen::MatrixXd path,int flag=0)
 {   
@@ -250,8 +195,8 @@ int main(int argc, char** argv)
     _map_sub  = nh.subscribe( "/random_complex/global_map", 1, rcvPointCloudCallBack );
 
     _way_pts_sub     = nh.subscribe( "waypoints", 1, rcvWaypointsCallBack );
-    _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
-    _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
+    // _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
+    // _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);

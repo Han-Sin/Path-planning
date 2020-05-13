@@ -39,6 +39,8 @@ ros::Subscriber vel_sub;
 ros::Publisher  drone_pos_pub;
 void visVisitedNode( vector<Vector3d> nodes );
 
+bool pos_init_flag=1;
+Vector3d current_pos;
 
 void rcvVelCallBack(nav_msgs::Path vel)
 {
@@ -47,7 +49,11 @@ void rcvVelCallBack(nav_msgs::Path vel)
         // ROS_INFO("start_x=%f",drone_pos[0](0));
         // visVisitedNode(drone_pos);
 
-        Vector3d current_pos=_start_pt;
+        if(pos_init_flag)
+        {
+            current_pos=_start_pt;
+            pos_init_flag=0;
+        }
 
         for (int i=0;i<vel.poses.size();i++)
         {

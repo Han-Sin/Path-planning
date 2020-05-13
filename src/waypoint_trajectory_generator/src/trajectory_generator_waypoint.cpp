@@ -270,28 +270,8 @@ void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coor
 //                ROS_WARN("expand suc,%d  %d  %d  ",i,j,k);
                 data[temp_x * GLYZ_SIZE + temp_y * GLZ_SIZE + temp_z] = 1;//index(grid)
             }
-    // if( coord_x < gl_xl  || coord_y < gl_yl  || coord_z <  gl_zl || 
-    //     coord_x >= gl_xu || coord_y >= gl_yu || coord_z >= gl_zu )
-    //     return;
-
-    // int idx_x = static_cast<int>( (coord_x - gl_xl) * inv_resolution);
-    // int idx_y = static_cast<int>( (coord_y - gl_yl) * inv_resolution);
-    // int idx_z = static_cast<int>( (coord_z - gl_zl) * inv_resolution);      
-
-    // if(idx_x== 0 || idx_y == 0 || idx_z == GLZ_SIZE || idx_x == GLX_SIZE || idx_y == GLY_SIZE)
-    //     data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z]         = 1;
-    // else{
-    //     data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z]         = 1;
-    //     data[(idx_x+1) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z] = 1;
-    //     data[(idx_x+1) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z] = 1;
-    //     data[(idx_x-1) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z] = 1;
-    //     data[(idx_x-1) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z] = 1;
-    //     data[(idx_x) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z]   = 1;
-    //     data[(idx_x) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z]   = 1;
-    //     data[(idx_x+1) * GLYZ_SIZE + (idx_y) * GLZ_SIZE + idx_z]   = 1;
-    //     data[(idx_x-1) * GLYZ_SIZE + (idx_y) * GLZ_SIZE + idx_z]   = 1;
-    // }
 }
+
 Vector3d TrajectoryGeneratorWaypoint::gridIndex2coord(const Vector3i & index) 
 {
     Vector3d pt;

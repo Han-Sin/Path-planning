@@ -39,7 +39,7 @@ Vector3d _map_lower, _map_upper;
 int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
-ros::Subscriber _map_sub, _pts_sub,_traj_sub;
+ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
 ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub,_simplified_waypoints_pub2,_simplified_waypoints_pub3;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
@@ -126,7 +126,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     // auto turning_points_path = _astar_path_finder->getTurningPoints();
 
     // auto simplified_points_path          = _astar_path_finder->pathSimplify(grid_path, 0.05);//RDP算法化简
-    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点
+    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
 
     //发布不采样的关键点
     // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
@@ -137,23 +137,11 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
 
-    //迭代加关键点
-    auto temp_path=simplified_points_path;
-    // int collision_flag=0;//1则打开迭代
-    // while(collision_flag)
-    // {
-    //     _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-    //     ros::Rate rate(20);//等待traj_generator_node发送回来traj
-    //     rate.sleep();
-    //     temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
-    //     visVisitedNode(temp_path);
-    //     // ros::Rate rate(50);//等待traj_generator_node发送回来traj
-    //     rate.sleep();
-    // }
-    _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
+
+    _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
 
     // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-    visVisitedNode(temp_path);
+    visVisitedNode(simplified_points_path);//可视化关键点
 
     // _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
@@ -202,6 +190,15 @@ void TrajectoryCallBack(const waypoint_trajectory_generator::Trajectoy  & trajec
     // ROS_WARN("trajectory length=   ",points.size());
 }
 
+void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
+{
+    // ROS_INFO("rcv pos!");
+    // ROS_INFO("%f",pos_msg.points[0].x);
+
+    Vector3d current_pt(pos_msg.points[0].x,pos_msg.points[0].y,pos_msg.points[0].z);
+    _start_pt=current_pt;
+
+}
 
 int main(int argc, char** argv)
 {
@@ -212,6 +209,7 @@ int main(int argc, char** argv)
     _map_sub  = nh.subscribe( "map",       1, rcvPointCloudCallBack );
     _pts_sub  = nh.subscribe( "waypoints", 1, rcvWaypointsCallback );
     _traj_sub = nh.subscribe( "/trajectory_generator_node/trajectory_points", 50, TrajectoryCallBack );
+    drone_pos_sub = nh.subscribe("/drone_node/drone_pos",50,rcvDronePosCallBack);
 
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
@@ -248,8 +246,6 @@ int main(int argc, char** argv)
     _jps_path_finder    = new JPSPathFinder();
     _jps_path_finder    -> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     
-
-
 
     ros::Rate rate(100);
     bool status = ros::ok();
