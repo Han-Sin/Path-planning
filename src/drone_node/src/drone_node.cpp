@@ -57,7 +57,7 @@ void rcvVelCallBack(nav_msgs::Path vel)
 
         for (int i=0;i<vel.poses.size();i++)
         {
-            double t_frequency=200;
+            double t_frequency=100;
             double t_gap=1/t_frequency;
             double v_x=vel.poses[i].pose.position.x;
             double v_y=vel.poses[i].pose.position.y;
@@ -72,8 +72,8 @@ void rcvVelCallBack(nav_msgs::Path vel)
             drone_pos.push_back(current_pos);
             visVisitedNode(drone_pos);
 
-            ROS_INFO("v_mode=%f   ",v_mod);
-            ros::Rate rate(200);
+            // ROS_INFO("v_mode=%f   ",v_mod);
+            ros::Rate rate(100);
             rate.sleep();
         }
 }

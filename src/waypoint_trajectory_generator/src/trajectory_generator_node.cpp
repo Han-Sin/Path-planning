@@ -283,7 +283,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 
     for(int i = 0; i < time.size(); i++ )
     {   
-        for (double t = 0.0; t < time(i); t += 0.005, count += 1)
+        for (double t = 0.0; t < time(i); t += 0.01, count += 1)
         {
             // if(t==0.0||t+0.01>=time(i))
             if(true)
