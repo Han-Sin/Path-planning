@@ -83,9 +83,9 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     double default_resolution=0.2;
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
     if(expand_size<=0)
-        expand_size=1;
+        expand_size=0;
     
-    expand_size=0;
+    // expand_size=0;
 
     // if(idx_z==1)
         // ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
@@ -94,6 +94,11 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
         for (int j=-expand_size;j<=expand_size;j++)
             for (int k=-expand_size;k<=expand_size;k++)
             {
+                // if(abs(i)+abs(j)+abs(k)==3*expand_size)
+                // {
+                //     // ROS_INFO("i=%d  j=%d  k=%d   ",i,j,k);
+                //     continue;
+                // }
                 int temp_x=idx_x+i;
                 int temp_y=idx_y+j;
                 int temp_z=idx_z+k;
@@ -110,46 +115,46 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
             }
     
 
-    //高分辨率地图的创建
-    double high_resolution=resolution/resolution_ratio;//分辨率
-    double high_inv_resolution=1/high_resolution;//反分辨率
-    //高分辨率障碍物地图设置
-    idx_x = int( (coord_x - gl_xl) * high_inv_resolution);
-    // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
-    idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
-    idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
+//     //高分辨率地图的创建
+//     double high_resolution=resolution/resolution_ratio;//分辨率
+//     double high_inv_resolution=1/high_resolution;//反分辨率
+//     //高分辨率障碍物地图设置
+//     idx_x = int( (coord_x - gl_xl) * high_inv_resolution);
+//     // ROS_INFO("ORI_X=%f     idx_x=%d   ",( (coord_x - gl_xl) * inv_resolution),idx_x);
+//     idx_y = int( (coord_y - gl_yl) * high_inv_resolution);
+//     idx_z = int( (coord_z - gl_zl) * high_inv_resolution);
     
-    // double expand_scale_ratio=2;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
-    // double expand_ratio_high=1;
+//     // double expand_scale_ratio=2;//高分辨率地图中，障碍物膨胀稍微小点//事实证明不能小。。。小了会撞
+//     // double expand_ratio_high=1;
 
-    // int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
-    int high_expand_size=(int)expand_size*(2*resolution/high_resolution-1);
+//     // int high_expand_size=(int)(expand_ratio*expand_scale_ratio*(double)(default_resolution/high_resolution));//膨胀单位
+//     int high_expand_size=(int)expand_size*(2*resolution/high_resolution-1);
 
-    static int cout_flag=1;
-    if(cout_flag)
-    {
-        ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
-        cout_flag=0;
-    }
-    for (int i=-high_expand_size;i<=high_expand_size;i++)
-        for (int j=-high_expand_size;j<=high_expand_size;j++)
-            for (int k=-high_expand_size;k<=high_expand_size;k++)
-            {
-                int temp_x=idx_x+i;
-                int temp_y=idx_y+j;
-                int temp_z=idx_z+k;
+//     static int cout_flag=1;
+//     if(cout_flag)
+//     {
+//         ROS_WARN("expand_size=%d    high_expand_size=%d  ",expand_size,high_expand_size);
+//         cout_flag=0;
+//     }
+//     for (int i=-high_expand_size;i<=high_expand_size;i++)
+//         for (int j=-high_expand_size;j<=high_expand_size;j++)
+//             for (int k=-high_expand_size;k<=high_expand_size;k++)
+//             {
+//                 int temp_x=idx_x+i;
+//                 int temp_y=idx_y+j;
+//                 int temp_z=idx_z+k;
 
-                double rev_x=(double)temp_x/high_inv_resolution+gl_xl;
-                double rev_y=(double)temp_y/high_inv_resolution+gl_yl;
-                double rev_z=(double)temp_z/high_inv_resolution+gl_zl;
+//                 double rev_x=(double)temp_x/high_inv_resolution+gl_xl;
+//                 double rev_y=(double)temp_y/high_inv_resolution+gl_yl;
+//                 double rev_z=(double)temp_z/high_inv_resolution+gl_zl;
 
-                if( rev_x < gl_xl  || rev_y < gl_yl  || rev_z <  gl_zl ||
-                    rev_x >= gl_xu || rev_y >= gl_yu || rev_z >= gl_zu )
-                    continue;
-//                ROS_WARN("expand suc,%d  %d  %d  ",i,j,k);
-                //障碍物的下标设置需要注意，xyz分别要乘以分辨率倍率的平方，一次，零次
-                data_high_resolution[temp_x * GLYZ_SIZE*resolution_ratio*resolution_ratio + temp_y * GLZ_SIZE *resolution_ratio+ temp_z ] = 1;//index(grid)
-            }
+//                 if( rev_x < gl_xl  || rev_y < gl_yl  || rev_z <  gl_zl ||
+//                     rev_x >= gl_xu || rev_y >= gl_yu || rev_z >= gl_zu )
+//                     continue;
+// //                ROS_WARN("expand suc,%d  %d  %d  ",i,j,k);
+//                 //障碍物的下标设置需要注意，xyz分别要乘以分辨率倍率的平方，一次，零次
+//                 data_high_resolution[temp_x * GLYZ_SIZE*resolution_ratio*resolution_ratio + temp_y * GLZ_SIZE *resolution_ratio+ temp_z ] = 1;//index(grid)
+//             }
 
 }
 
@@ -645,8 +650,8 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
             int  y2 = lastPtr->index(1);
             int  z2 = lastPtr->index(2);
 
-            if(if_collision(x1*resolution_ratio,y1*resolution_ratio,z1*resolution_ratio))
-                ROS_WARN("key node collision???????????????????????????????");
+            // if(if_collision(x1*resolution_ratio,y1*resolution_ratio,z1*resolution_ratio))
+            //     ROS_WARN("key node collision???????????????????????????????");
 
             int collision_flag=0;//碰撞标志位
 
@@ -655,8 +660,8 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
             double d=sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)+(z1-z2)*(z1-z2));
 
             // double divide_piece_num=d*2;//碰撞检测划分份数
-            double divide_piece_num=1000;
-            ROS_INFO("d=%f         step=%f ",d,1.0/divide_piece_num);
+            double divide_piece_num=100;
+            // ROS_INFO("d=%f         step=%f ",d,1.0/divide_piece_num);
             for (double k=0;k<1;k+=1.0/divide_piece_num)
             {
                 // //得到等分点坐标
@@ -675,7 +680,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
                 if(isOccupied(x_check,y_check,z_check))
                     {
                         collision_flag=1;
-                        ROS_INFO("check_x=%d   y=%d   z=%d    x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
+                        // ROS_INFO("check_x=%d   y=%d   z=%d    x1=%d  y1=%d  x2=%d  y2=%d",x_check,y_check,z_check,x1,y1,x2,y2);
                     }
             }
             if(collision_flag==0)
@@ -1142,7 +1147,7 @@ vector<Vector3d> AstarPathFinder::recursive_get_simplified_points(vector<Vector3
 
         auto add_point_idx=coord2gridIndex(temp_p);
 
-        temp_p=gridIndex2coord(add_point_idx);
+        // temp_p=gridIndex2coord(add_point_idx);
         
         if(isOccupied(add_point_idx[0],add_point_idx[1],add_point_idx[2]))//想加的点本身撞了
         {

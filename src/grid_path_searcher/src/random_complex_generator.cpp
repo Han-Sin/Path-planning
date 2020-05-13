@@ -131,12 +131,12 @@ void RandomMapGenerate()
    for(int i = 0; i < _obs_num; i ++)
    {
       double x, y, w, h; 
-      // x    = rand_x(eng);
-      // y    = rand_y(eng);
-      // w    = rand_w(eng);
-      x=0;
-      y=0;
-      w=2;
+      x    = rand_x(eng);
+      y    = rand_y(eng);
+      w    = rand_w(eng);
+      // x=0;
+      // y=0;
+      // w=2;
 
       //if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 2.0 ) 
       if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 0.8 ) 

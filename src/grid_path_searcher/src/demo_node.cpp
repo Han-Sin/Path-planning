@@ -40,7 +40,7 @@ int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub,_traj_sub;
-ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub,_simplified_waypoints_pub2;
+ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub,_simplified_waypoints_pub2,_simplified_waypoints_pub3;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
@@ -125,7 +125,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     // auto turning_points_path = _astar_path_finder->getTurningPoints();
 
     // auto simplified_points_path          = _astar_path_finder->pathSimplify(grid_path, 0.05);//RDP算法化简
-    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点
+    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(4);//化简后的关键点
 
     //发布不采样的关键点
     auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
@@ -138,11 +138,11 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     //迭代加关键点
     auto temp_path=simplified_points_path;
-    int collision_flag=1;//1则打开迭代
+    int collision_flag=0;//1则打开迭代
     while(collision_flag)
     {
         _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-        ros::Rate rate(2);//等待traj_generator_node发送回来traj
+        ros::Rate rate(20);//等待traj_generator_node发送回来traj
         rate.sleep();
         temp_path=_astar_path_finder->recursive_get_simplified_points(temp_path,traj_global,collision_flag);
         visVisitedNode(temp_path);
@@ -150,6 +150,8 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
         rate.sleep();
     }
     _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
+
+    _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
     visVisitedNode(temp_path);
 
     // _simplified_waypoints_pub.publish(simplified_waypoints);
@@ -217,6 +219,7 @@ int main(int argc, char** argv)
     //waypoints发布者，没写完
     _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);
     _simplified_waypoints_pub2     = nh.advertise<nav_msgs::Path>("simplified_waypoints2",50);
+    _simplified_waypoints_pub3     = nh.advertise<nav_msgs::Path>("simplified_waypoints3",50);
 
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);

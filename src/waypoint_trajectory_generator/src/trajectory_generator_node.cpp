@@ -28,8 +28,8 @@ using namespace Eigen;
     int    _dev_order, _min_order;
 
 // ros related
-    ros::Subscriber _way_pts_sub,_way_pts_sub2;
-    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2, _wp_path_vis_pub,  _vel_pub,_acc_pub,_points_pub;
+    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3;
+    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3, _wp_path_vis_pub,  _vel_pub,_acc_pub,_points_pub;
 
 // for planning
     int _poly_num1D;
@@ -108,6 +108,34 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
 }
 
 
+void rcvWaypointsCallBack3(const nav_msgs::Path & wp)
+{   
+    vector<Vector3d> wp_list;
+    wp_list.clear();
+
+    for (int k = 0; k < (int)wp.poses.size(); k++)
+    {
+        Vector3d pt( wp.poses[k].pose.position.x, wp.poses[k].pose.position.y, wp.poses[k].pose.position.z);
+        wp_list.push_back(pt);
+
+        if(wp.poses[k].pose.position.z < 0.0)
+            break;
+    }
+
+    //MatrixXd waypoints(wp_list.size() + 1, 3);
+    //waypoints.row(0) = _startPos;
+    MatrixXd waypoints(wp_list.size(), 3);
+    //for(int k = 0; k < (int)wp_list.size(); k++)
+    //    waypoints.row(k+1) = wp_list[k];
+    for(int k = 0; k < (int)wp_list.size(); k++)
+        waypoints.row(k) = wp_list[k];
+    
+    //Trajectory generation: use minimum snap trajectory generation method
+    //waypoints is the result of path planning (Manual in this homework)
+    trajGeneration(waypoints,2);
+}
+
+
 void trajGeneration(Eigen::MatrixXd path,int flag=0)
 {
     TrajectoryGeneratorWaypoint  trajectoryGeneratorWaypoint;
@@ -152,9 +180,11 @@ int main(int argc, char** argv)
     
     _way_pts_sub     = nh.subscribe( "waypoints", 1, rcvWaypointsCallBack );
     _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
+    _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
+    _wp_traj_vis_pub3 = nh.advertise<visualization_msgs::Marker>("vis_trajectory3", 1);//迭代的最后输出，matlab看速度用
 
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
@@ -194,7 +224,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
     _traj_vis.pose.orientation.z = 0.0;
     _traj_vis.pose.orientation.w = 1.0;
 
-    if(flag)
+    if(flag==1)
     {
     _traj_vis.color.a = 1.0;
     _traj_vis.color.r = 1.0;
@@ -208,6 +238,14 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
     _traj_vis.color.r = 0.0;
     _traj_vis.color.g = 0.0;
     _traj_vis.color.b = 1.0;
+    }
+
+    else if(flag==2)
+    {
+    _traj_vis.color.a = 1.0;
+    _traj_vis.color.r = 0.0;
+    _traj_vis.color.g = 1.0;
+    _traj_vis.color.b = 0.0;
     }
 
     double traj_len = 0.0;
@@ -253,11 +291,15 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
         }
     }
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
-    if(flag)
+    if(flag==1)
         _wp_traj_vis_pub.publish(_traj_vis);
     else if(flag==0)
         _wp_traj_vis_pub2.publish(_traj_vis);
-    _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+    else if(flag==2)
+    {
+        _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+        _wp_traj_vis_pub3.publish(_traj_vis);
+    }
     _acc_pub.publish(vector3d_to_waypoints(acc_pub));
     _points_pub.publish(_traj);
 }
