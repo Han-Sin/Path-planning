@@ -283,32 +283,33 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 
     for(int i = 0; i < time.size(); i++ )
     {   
-        for (double t = 0.0; t < time(i); t += 0.01, count += 1)
+        for (double t = 0.0; t < time(i); t += 0.005, count += 1)
         {
             // if(t==0.0||t+0.01>=time(i))
-            if(true)
-            {
-                Vector3d vel = getVelocity(polyCoeff, i, t);
-                // ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
-                // ROS_INFO("time=%f",t);
-                Vector3d acc = getAcc(polyCoeff,i,t);
-                vel_pub.push_back(vel);
-                acc_pub.push_back(acc);
-                // if(t+0.01>=time(i))
-                //     ROS_INFO(" ");
-            }
-          pos = getPosPoly(polyCoeff, i, t);
-          cur(0) = pt.x = pos(0);
-          cur(1) = pt.y = pos(1);
-          cur(2) = pt.z = pos(2);
-          _traj_vis.points.push_back(pt);
-        //   waypoint_trajectory_generator::trajpoint traj_point;
-        //   traj_point.seg = i;
-        //   traj_point.point = pt;
-        //   _traj.traj_points.push_back(traj_point);
-          if (count) traj_len += (pre - cur).norm();
-          pre = cur;
+            Vector3d vel = getVelocity(polyCoeff, i, t);
+            // ROS_INFO_STREAM("time: "<<t<<"      VX= " << vel(0) << "     VY= " << vel(1) << "     VZ= " << vel(2));
+            // ROS_INFO("time=%f",t);
+            Vector3d acc = getAcc(polyCoeff,i,t);
+            vel_pub.push_back(vel);
+            acc_pub.push_back(acc);
+             //     ROS_INFO(" ");
+            pos = getPosPoly(polyCoeff, i, t);
+            cur(0) = pt.x = pos(0);
+            cur(1) = pt.y = pos(1);
+            cur(2) = pt.z = pos(2);
+            _traj_vis.points.push_back(pt);
+            //   waypoint_trajectory_generator::trajpoint traj_point;
+            //   traj_point.seg = i;
+            //   traj_point.point = pt;
+            //   _traj.traj_points.push_back(traj_point);
+            if (count) traj_len += (pre - cur).norm();
+            pre = cur;
         }
+        //for(double t=0.0;t<time(i);t+=0.005){
+          //  Vector3d vel = getVelocity(polyCoeff, i, t);
+            //vel_pub.push_back(vel);
+        //}
+
     }
     ROS_INFO_STREAM("optimizer traj success, the length is "<<traj_len);
     if(flag==0)

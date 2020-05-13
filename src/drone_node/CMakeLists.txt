@@ -15,9 +15,7 @@ find_package(PCL REQUIRED)
 
 set(Eigen3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 
-catkin_package(
-  INCLUDE_DIRS include
-)
+
 
 include_directories(
     include 

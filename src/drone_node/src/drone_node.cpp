@@ -13,8 +13,6 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
-#include <waypoint_trajectory_generator/trajpoint.h>
-#include <waypoint_trajectory_generator/Trajectoy.h>
 
 // #include <waypoint_trajectory_generator/trajpoint.h>
 
@@ -56,8 +54,9 @@ void rcvVelCallBack(nav_msgs::Path vel)
         }
 
         for (int i=0;i<vel.poses.size();i++)
-        {
-            double t_gap=0.01;
+        {   
+            double t_frequency = 200;
+            double t_gap=1/t_frequency;
             double v_x=vel.poses[i].pose.position.x;
             double v_y=vel.poses[i].pose.position.y;
             double v_z=vel.poses[i].pose.position.z;
@@ -72,7 +71,7 @@ void rcvVelCallBack(nav_msgs::Path vel)
             visVisitedNode(drone_pos);
 
             // ROS_INFO("v_mode=%f   ",v_mod);
-            ros::Rate rate(100);
+            ros::Rate rate(200);
             rate.sleep();
         }
 }
@@ -107,7 +106,7 @@ int main(int argc, char** argv)
     vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
 
-    ros::Rate rate(100);
+    ros::Rate rate(200);
     bool status = ros::ok();
 
     // ros::AsyncSpinner spinner(4); // Use 4 threads
@@ -126,57 +125,6 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
-// void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
-// {   
-//     visualization_msgs::Marker node_vis; 
-//     node_vis.header.frame_id = "world";
-//     node_vis.header.stamp = ros::Time::now();
-//     if(is_use_jps)
-//         node_vis.ns = "demo_node/jps_path";
-//     else
-//         node_vis.ns = "demo_node/astar_path";
-
-//     node_vis.type = visualization_msgs::Marker::CUBE_LIST;
-//     node_vis.action = visualization_msgs::Marker::ADD;
-//     node_vis.id = 0;
-
-//     node_vis.pose.orientation.x = 0.0;
-//     node_vis.pose.orientation.y = 0.0;
-//     node_vis.pose.orientation.z = 0.0;
-//     node_vis.pose.orientation.w = 1.0;
-    
-
-//     if(is_use_jps){
-//         node_vis.color.a = 1.0;
-//         node_vis.color.r = 1.0;
-//         node_vis.color.g = 0.0;
-//         node_vis.color.b = 0.0;
-//     }
-//     else{
-//         node_vis.color.a = 1.0;
-//         node_vis.color.r = 1.0;
-//         node_vis.color.g = 1.0;
-//         node_vis.color.b = 1.0;
-//     }
-
-
-//     node_vis.scale.x = _resolution;
-//     node_vis.scale.y = _resolution;
-//     node_vis.scale.z = _resolution;
-//     geometry_msgs::Point pt;
-//     for(int i = 0; i < int(nodes.size()); i++)
-//     {
-//         Vector3d coord = nodes[i];
-//         pt.x = coord(0);
-//         pt.y = coord(1);
-//         pt.z = coord(2);
-
-//         node_vis.points.push_back(pt);
-//     }
-
-//     _grid_path_vis_pub.publish(node_vis);
-// }
 
 void visVisitedNode( vector<Vector3d> nodes )
 {   
