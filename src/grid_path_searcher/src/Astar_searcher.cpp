@@ -96,7 +96,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
         for (int j=-expand_size;j<=expand_size;j++)
             for (int k=-expand_size;k<=expand_size;k++)
             {
-                // if(abs(i)+abs(j)+abs(k)==3*expand_size)
+                // if(abs(i)+abs(j)+abs(k)==3*expand_size)//膨胀成十字形，而不是方块
                 // {
                 //     // ROS_INFO("i=%d  j=%d  k=%d   ",i,j,k);
                 //     continue;
