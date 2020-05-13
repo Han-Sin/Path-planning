@@ -125,7 +125,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     // auto turning_points_path = _astar_path_finder->getTurningPoints();
 
     // auto simplified_points_path          = _astar_path_finder->pathSimplify(grid_path, 0.05);//RDP算法化简
-    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(4);//化简后的关键点
+    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点
 
     //发布不采样的关键点
     auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
@@ -138,7 +138,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     //迭代加关键点
     auto temp_path=simplified_points_path;
-    int collision_flag=0;//1则打开迭代
+    int collision_flag=1;//1则打开迭代
     while(collision_flag)
     {
         _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));

@@ -87,7 +87,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.200000003
       Style: Boxes
-      Topic: /demo_node/grid_map_vis
+      Topic: /random_complex/global_map
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
@@ -96,11 +96,22 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /demo_node/visited_nodes_vis
-      Name: visitedNodes
+      Name: key_points
       Namespaces:
         {}
       Queue Size: 100
       Value: true
+
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /drone_node/drone_pos
+      Name: Drone_pos
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
+
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /demo_node/grid_path_vis

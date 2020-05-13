@@ -22,7 +22,7 @@ class AstarPathFinder
 		uint8_t * data;
 
 		uint8_t * data_high_resolution;
-		int resolution_ratio=2;//4
+		int resolution_ratio=1;//4
 
 		GridNodePtr *** GridNodeMap;
 		Eigen::Vector3i goalIdx;
