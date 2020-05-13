@@ -55,7 +55,7 @@ void rcvVelCallBack(nav_msgs::Path vel)
 
         for (int i=0;i<vel.poses.size();i++)
         {
-            double t_frequency=200;
+            double t_frequency=100;
             double t_gap=1/t_frequency;
             double v_x=vel.poses[i].pose.position.x;
             double v_y=vel.poses[i].pose.position.y;
@@ -71,7 +71,7 @@ void rcvVelCallBack(nav_msgs::Path vel)
             visVisitedNode(drone_pos);
 
             // ROS_INFO("v_mode=%f   ",v_mod);
-            ros::Rate rate(200);
+            ros::Rate rate(100);
             rate.sleep();
         }
 }
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
     vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
 
-    ros::Rate rate(200);
+    ros::Rate rate(100);
     bool status = ros::ok();
 
     // ros::AsyncSpinner spinner(4); // Use 4 threads
