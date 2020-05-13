@@ -42,11 +42,13 @@ CATKIN_DEPENDS message_runtime
 )
 
 find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
 set(Eigen3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 
 include_directories(include
   	${catkin_INCLUDE_DIRS}
   	${Eigen3_INCLUDE_DIRS} 
+	${PCL_INCLUDE_DIRS}
 )
 
 add_executable(trajectory_generator_node 
@@ -56,5 +58,6 @@ add_executable(trajectory_generator_node
 
 target_link_libraries(trajectory_generator_node
    ${catkin_LIBRARIES}
+   ${PCL_LIBRARIES}
 )
 

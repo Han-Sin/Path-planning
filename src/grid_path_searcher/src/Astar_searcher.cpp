@@ -116,7 +116,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
                 data[temp_x * GLYZ_SIZE + temp_y * GLZ_SIZE + temp_z] = 1;//index(grid)
             }
     
-
+    
     //高分辨率地图的创建
     double high_resolution=resolution/resolution_ratio;//分辨率
     double high_inv_resolution=1/high_resolution;//反分辨率

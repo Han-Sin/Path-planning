@@ -13,11 +13,15 @@
 #include <visualization_msgs/Marker.h>
 #include <sensor_msgs/Joy.h>
 #include <algorithm>
-#include <waypoint_trajectory_generator/Trajectoy.h>
-#include <waypoint_trajectory_generator/trajpoint.h>
+//#include <waypoint_trajectory_generator/Trajectoy.h>
+//#include <waypoint_trajectory_generator/trajpoint.h>
 //#include <quadrotor_msgs/PolynomialTrajectory.h>
 // Useful customized headers
 #include "trajectory_generator_waypoint.h"
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 using namespace std;
 using namespace Eigen;
@@ -25,10 +29,16 @@ using namespace Eigen;
 // Param from launch file
     double _vis_traj_width;
     double _Vel, _Acc;
-    int    _dev_order, _min_order;
-
+    int    _dev_order, _min_order;    
+// Set the obstacle map
+    double _resolution, _inv_resolution;
+    double _x_size, _y_size, _z_size;
+    Vector3d _map_lower, _map_upper;
+    int _max_x_id, _max_y_id, _max_z_id;
+//
+    TrajectoryGeneratorWaypoint * _trajGene     = new TrajectoryGeneratorWaypoint();
 // ros related
-    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3;
+    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
     ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3, _wp_path_vis_pub,  _vel_pub,_acc_pub,_points_pub;
 
 // for planning
@@ -48,10 +58,33 @@ using namespace Eigen;
     void trajGeneration(Eigen::MatrixXd path,int flag);
     void rcvWaypointsCallBack(const nav_msgs::Path & wp);
     void rcvWaypointsCallBack2(const nav_msgs::Path & wp);
-
     nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
 
-//Get the path points 
+
+
+void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
+{   
+
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::PointCloud<pcl::PointXYZ> cloud_vis;
+    sensor_msgs::PointCloud2 map_vis;
+
+    pcl::fromROSMsg(pointcloud_map, cloud);
+    
+    if( (int)cloud.points.size() == 0 ) return;
+
+    pcl::PointXYZ pt;
+    for (int idx = 0; idx < (int)cloud.points.size(); idx++)
+    {    
+        pt = cloud.points[idx];
+        // set obstalces into grid map for path planning
+        _trajGene->setObs(pt.x, pt.y, pt.z);
+        // ROS_INFO("setting %f",pt.x);
+    }
+
+}
+
+
 void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 {   
     vector<Vector3d> wp_list;
@@ -77,6 +110,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     //Trajectory generation: use minimum snap trajectory generation method
     //waypoints is the result of path planning (Manual in this homework)
     trajGeneration(waypoints,0);
+    //化简后的结点。
 }
 
 
@@ -137,8 +171,7 @@ void rcvWaypointsCallBack3(const nav_msgs::Path & wp)
 
 
 void trajGeneration(Eigen::MatrixXd path,int flag=0)
-{
-    TrajectoryGeneratorWaypoint  trajectoryGeneratorWaypoint;
+{   
     
     MatrixXd vel = MatrixXd::Zero(2, 3); 
     MatrixXd acc = MatrixXd::Zero(2, 3);
@@ -149,10 +182,46 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
     _polyTime  = timeAllocation(path);
 
     // generate a minimum-snap piecewise monomial polynomial-based trajectory
-    _polyCoeff = trajectoryGeneratorWaypoint.PolyQPGeneration(_dev_order, path, vel, acc, _polyTime);
-
+    _polyCoeff = _trajGene->PolyQPGeneration(_dev_order, path, vel, acc, _polyTime);
     visWayPointPath(path);
+    visWayPointTraj( _polyCoeff, _polyTime,1);
+    int unsafe_segment;
+    if(!flag){
+        //开始迭代
+        MatrixXd repath = path;
+        int count = 0;
+        unsafe_segment = _trajGene->safeCheck(_polyCoeff, _polyTime);
+        while(unsafe_segment != -1){
+        //cout << "reoptimize!"<< endl;
+            MatrixXd repath_a,repath_b;
+            VectorXd mid(3);
+            int rows = repath.rows();
+            mid(0) = (repath(unsafe_segment,0) + repath(unsafe_segment+1,0))/2;
+            mid(1) = (repath(unsafe_segment,1) + repath(unsafe_segment+1,1))/2;
+            mid(2) = (repath(unsafe_segment,2) + repath(unsafe_segment+1,2))/2;
+            repath_a = repath.block(0,0,unsafe_segment+1,3);
+            repath_b = repath.block(unsafe_segment+1,0,rows-unsafe_segment-1,3);
+            repath.resize(rows + 1,3);
+            repath.block(0,0,unsafe_segment+1,3) = repath_a;
+            repath(unsafe_segment+1,0) = mid(0);
+            repath(unsafe_segment+1,1) = mid(1);
+            repath(unsafe_segment+1,2) = mid(2);
+            repath.block(unsafe_segment+2,0,rows-unsafe_segment-1,3) = repath_b;
+            _polyTime  = timeAllocation(repath);
+            _polyCoeff = _trajGene->PolyQPGeneration(_dev_order, repath, vel, acc, _polyTime);
+            unsafe_segment = _trajGene->safeCheck(_polyCoeff, _polyTime);
+            count++;
+            if(count > 10)
+            {
+                unsafe_segment = -1;
+                ROS_INFO("over replan!!!");
+            }
+            // visWayPointTraj( _polyCoeff, _polyTime,flag);
+        }
+    // if(count<=10)
     visWayPointTraj( _polyCoeff, _polyTime,flag);
+    }
+
 }
 
 int main(int argc, char** argv)
@@ -165,19 +234,21 @@ int main(int argc, char** argv)
     nh.param("planning/dev_order", _dev_order,  4 );
     nh.param("planning/min_order", _min_order,  3 );
     nh.param("vis/vis_traj_width", _vis_traj_width, 0.15);
+    nh.param("map/resolution",    _resolution,   0.1);
+    nh.param("map/x_size",        _x_size, 50.0);
+    nh.param("map/y_size",        _y_size, 50.0);
+    nh.param("map/z_size",        _z_size, 5.0 );
 
     //_poly_numID is the maximum order of polynomial
     _poly_num1D = 2 * _dev_order;
 
-    //state of start point
-    _startPos(0)  = 0;
-    _startPos(1)  = 0;
-    _startPos(2)  = 0;    
-
+    //state of start point  
     _startVel(0)  = 0;
     _startVel(1)  = 0;
     _startVel(2)  = 0;
     
+    _map_sub  = nh.subscribe( "/random_complex/global_map", 1, rcvPointCloudCallBack );
+
     _way_pts_sub     = nh.subscribe( "waypoints", 1, rcvWaypointsCallBack );
     _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
     _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
@@ -189,8 +260,14 @@ int main(int argc, char** argv)
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
-    _points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
-
+    //_points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
+    _map_lower << - _x_size/2.0, - _y_size/2.0,     0.0;
+    _map_upper << + _x_size/2.0, + _y_size/2.0, _z_size;  
+    _inv_resolution = 1.0 / _resolution;
+    _max_x_id = (int)(_x_size * _inv_resolution);
+    _max_y_id = (int)(_y_size * _inv_resolution);
+    _max_z_id = (int)(_z_size * _inv_resolution);
+    _trajGene-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     ros::Rate rate(100);
     bool status = ros::ok();
     while(status) 
@@ -207,8 +284,8 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
     visualization_msgs::Marker _traj_vis;
     _traj_vis.header.stamp       = ros::Time::now();
     _traj_vis.header.frame_id    = "world";
-    waypoint_trajectory_generator::Trajectoy _traj;
-    _traj.traj_points.clear();
+    //waypoint_trajectory_generator::Trajectoy _traj;
+    //_traj.traj_points.clear();
     _traj_vis.ns = "traj_node/trajectory_waypoints";
     // else if(flag==1)
         // _traj_vis.ns = "traj_node/trajectory_waypoints2";
@@ -282,26 +359,29 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
           cur(1) = pt.y = pos(1);
           cur(2) = pt.z = pos(2);
           _traj_vis.points.push_back(pt);
-          waypoint_trajectory_generator::trajpoint traj_point;
-          traj_point.seg = i;
-          traj_point.point = pt;
-          _traj.traj_points.push_back(traj_point);
+        //   waypoint_trajectory_generator::trajpoint traj_point;
+        //   traj_point.seg = i;
+        //   traj_point.point = pt;
+        //   _traj.traj_points.push_back(traj_point);
           if (count) traj_len += (pre - cur).norm();
           pre = cur;
         }
     }
     ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
-    if(flag==1)
+    if(flag==0)
+    {
         _wp_traj_vis_pub.publish(_traj_vis);
-    else if(flag==0)
+        _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+    }
+    else if(flag==1)
         _wp_traj_vis_pub2.publish(_traj_vis);
     else if(flag==2)
     {
-        _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+        // _vel_pub.publish(vector3d_to_waypoints(vel_pub));
         _wp_traj_vis_pub3.publish(_traj_vis);
     }
     _acc_pub.publish(vector3d_to_waypoints(acc_pub));
-    _points_pub.publish(_traj);
+    // _points_pub.publish(_traj);
 }
 
 void visWayPointPath(MatrixXd path)
@@ -445,7 +525,6 @@ VectorXd timeAllocation( MatrixXd Path)
         }
         //time(i) = distance/_Vel;
     }
-    
     return time;
 }
 
