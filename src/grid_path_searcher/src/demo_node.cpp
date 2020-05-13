@@ -7,17 +7,16 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <sensor_msgs/PointCloud2.h>
-
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
-#include <waypoint_trajectory_generator/trajpoint.h>
 #include "Astar_searcher.h"
 #include "JPS_searcher.h"
 #include "backward.hpp"
-#include <waypoint_trajectory_generator/Trajectoy.h>
+//#include <waypoint_trajectory_generator/trajpoint.h>
+//#include <waypoint_trajectory_generator/Trajectoy.h>
 // #include <waypoint_trajectory_generator/trajpoint.h>
 
 using namespace std;
@@ -40,14 +39,9 @@ int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
-ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub,_simplified_waypoints_pub2,_simplified_waypoints_pub3;
-
+ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
-
-
-waypoint_trajectory_generator::Trajectoy traj_global;
-
 void rcvWaypointsCallback(const nav_msgs::Path & wp);
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
 
@@ -122,42 +116,27 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
     auto visited_nodes = _astar_path_finder->getVisitedNodes();
-
-    // auto turning_points_path = _astar_path_finder->getTurningPoints();
-
-    // auto simplified_points_path          = _astar_path_finder->pathSimplify(grid_path, 0.05);//RDP算法化简
     auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
-
     //发布不采样的关键点
     // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
     // _simplified_waypoints_pub2.publish(_astar_path_finder->vector3d_to_waypoints(simplified_points_path2));
-
     // auto simplified_points_path = _astar_path_finder->getSimplifiedPoints_by_lines();//化简后的关键点,直线查找
-
     nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
-
-
     _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
-
     // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
     visVisitedNode(simplified_points_path);//可视化关键点
-
     // _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
-
     ros::Time time_2 = ros::Time::now();
     ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
-
     //Visualize the result
-    visGridPath (grid_path, false);
+    visGridPath (grid_path, false);//可视化搜寻的栅格地图
     // visVisitedNode(visited_nodes);
     // visVisitedNode(simplified_points_path);
     // visVisitedNode(simplified_path_RDP);
-
     //Reset map for next call
     _astar_path_finder->resetUsedGrids();
-
     //_use_jps = 0 -> Do not use JPS
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
@@ -181,15 +160,6 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 #endif
 }
 
-
-void TrajectoryCallBack(const waypoint_trajectory_generator::Trajectoy  & trajectory)
-{
-    traj_global=trajectory;
-    ROS_WARN("traj_update!");
-    // auto points=trajectory.points;
-    // ROS_WARN("trajectory length=   ",points.size());
-}
-
 void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
 {
     // ROS_INFO("rcv pos!");
@@ -208,18 +178,13 @@ int main(int argc, char** argv)
 
     _map_sub  = nh.subscribe( "map",       1, rcvPointCloudCallBack );
     _pts_sub  = nh.subscribe( "waypoints", 1, rcvWaypointsCallback );
-    _traj_sub = nh.subscribe( "/trajectory_generator_node/trajectory_points", 50, TrajectoryCallBack );
     drone_pos_sub = nh.subscribe("/drone_node/drone_pos",50,rcvDronePosCallBack);
 
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
     _visited_nodes_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_vis",1);
-
-    //waypoints发布者，没写完
-    _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);
-    // _simplified_waypoints_pub2     = nh.advertise<nav_msgs::Path>("simplified_waypoints2",50);
-    // _simplified_waypoints_pub3     = nh.advertise<nav_msgs::Path>("simplified_waypoints3",50);
-
+    _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);//发布优化后的轨迹
+    
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);
     

@@ -128,8 +128,8 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
 
     // generate a minimum-snap piecewise monomial polynomial-based trajectory
     _polyCoeff = _trajGene->PolyQPGeneration(_dev_order, path, vel, acc, _polyTime);
-    visWayPointPath(path);
-    visWayPointTraj( _polyCoeff, _polyTime,1);
+    visWayPointPath(path);//可视化结点的连线
+    visWayPointTraj( _polyCoeff, _polyTime,1);//画出不迭代时候的轨迹
     int unsafe_segment;
     if(!flag){
         //开始迭代
@@ -200,8 +200,6 @@ int main(int argc, char** argv)
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
-    _wp_traj_vis_pub3 = nh.advertise<visualization_msgs::Marker>("vis_trajectory3", 1);//迭代的最后输出，matlab看速度用
-
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
@@ -312,19 +310,15 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
           pre = cur;
         }
     }
-    ROS_INFO_STREAM("optimizer traj sucess, the length is "<<traj_len);
+    ROS_INFO_STREAM("optimizer traj success, the length is "<<traj_len);
     if(flag==0)
     {
+        //迭代后的轨迹
         _wp_traj_vis_pub.publish(_traj_vis);
         _vel_pub.publish(vector3d_to_waypoints(vel_pub));
     }
-    else if(flag==1)
+    else if(flag==1)//未迭代的轨迹
         _wp_traj_vis_pub2.publish(_traj_vis);
-    else if(flag==2)
-    {
-        // _vel_pub.publish(vector3d_to_waypoints(vel_pub));
-        _wp_traj_vis_pub3.publish(_traj_vis);
-    }
     _acc_pub.publish(vector3d_to_waypoints(acc_pub));
     // _points_pub.publish(_traj);
 }
@@ -472,45 +466,6 @@ VectorXd timeAllocation( MatrixXd Path)
     }
     return time;
 }
-
-
-// VectorXd timeAllocation( MatrixXd Path)
-// { 
-//     VectorXd time(Path.rows() - 1);
-
-//     for (int k = 0; k < (Path.rows() - 1); k++)
-//     {
-//         double dtxyz;
-
-//         Vector3d p0   = Path.row(k);        
-//         Vector3d p1   = Path.row(k + 1);    
-//         double D    = (p1 - p0).norm();             
-
-//         double acct = (_Vel) / _Acc;
-//         double accd = (_Acc * acct * acct / 2);
-//         double dcct = _Vel / _Acc;                                  
-//         double dccd = _Acc * dcct * dcct / 2;                           
-
-//         if (D < accd + dccd)
-//         {   
-//             double t1 = sqrt( _Acc * D ) / _Acc;
-//             double t2 = (_Acc * t1) / _Acc;
-//             dtxyz     = t1 + t2;    
-//         }
-//         else
-//         {                                        
-//             double t1 = acct;                              
-//             double t2 = (D - accd - dccd) / _Vel;
-//             double t3 = dcct;
-//             dtxyz     = t1 + t2 + t3;                                                                  
-//         }
-
-//         time(k) = dtxyz;
-//     }
-
-//     return time;
-// }
-
 nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
 {
     nav_msgs::Path waypoints;

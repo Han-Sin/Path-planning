@@ -3,8 +3,8 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <utility>
-#include <waypoint_trajectory_generator/Trajectoy.h>
-#include <waypoint_trajectory_generator/trajpoint.h>
+//#include <waypoint_trajectory_generator/Trajectoy.h>
+//#include <waypoint_trajectory_generator/trajpoint.h>
 
 
 using namespace std;
