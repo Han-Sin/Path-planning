@@ -85,7 +85,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     if(expand_size<=0)
         expand_size=0;
     
-    expand_size=expand_size+1;
+    // expand_size=expand_size+1;
     
     // expand_size=0;
 

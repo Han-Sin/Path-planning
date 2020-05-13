@@ -248,7 +248,7 @@ void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coor
     if(expand_size<=0)
         expand_size=0;
     
-    // expand_size=expand_size-1;
+    expand_size=expand_size-1;
     // ROS_INFO("traj   expand_size= %d  ",expand_size);
     
 
