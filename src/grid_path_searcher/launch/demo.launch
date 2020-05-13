@@ -85,6 +85,7 @@
       <param name="planning/dev_order" value="4"    />
       <param name="planning/min_order" value="3"    />
       <param name="vis/vis_traj_width" value="0.05" />
+      <!-- <param name="map/resolution"   value="0.2" /> -->
 
   </node>
   

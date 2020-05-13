@@ -244,11 +244,15 @@ void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coor
     double expand_ratio=1;
 
     double default_resolution=0.2;
-    int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
-    if(expand_size<=0)
-        expand_size=0;
+    // ROS_INFO("resolution=%f",resolution);
+    // int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
+
+    int expand_size=(int)(default_resolution/resolution)-1+(int)expand_ratio;
+
+    // if(expand_size<=0)
+    //     expand_size=0;
     
-    expand_size=expand_size-1;
+    // expand_size=expand_size-1;
     // ROS_INFO("traj   expand_size= %d  ",expand_size);
     
 

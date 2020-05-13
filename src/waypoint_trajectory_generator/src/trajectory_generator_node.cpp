@@ -167,6 +167,7 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
             ros::Rate rate(1);
             rate.sleep();
         }
+    ROS_INFO("iterated %d times",count);
     // if(count<=10)
     visWayPointTraj( _polyCoeff, _polyTime,flag);
     }
@@ -183,7 +184,7 @@ int main(int argc, char** argv)
     nh.param("planning/dev_order", _dev_order,  4 );
     nh.param("planning/min_order", _min_order,  3 );
     nh.param("vis/vis_traj_width", _vis_traj_width, 0.15);
-    nh.param("map/resolution",    _resolution,   0.1);
+    nh.param("map/resolution",    _resolution,   0.05);
     nh.param("map/x_size",        _x_size, 50.0);
     nh.param("map/y_size",        _y_size, 50.0);
     nh.param("map/z_size",        _z_size, 5.0 );

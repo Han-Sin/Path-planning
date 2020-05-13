@@ -210,6 +210,8 @@ int main (int argc, char** argv)
    n.param("map/circle_num", _cir_num,  30);
    n.param("map/resolution", _resolution, 0.2);
 
+   // ROS_INFO("resolution=%f",_resolution);
+
    n.param("ObstacleShape/lower_rad", _w_l,   0.3);
    n.param("ObstacleShape/upper_rad", _w_h,   0.8);
    n.param("ObstacleShape/lower_hei", _h_l,   3.0);
