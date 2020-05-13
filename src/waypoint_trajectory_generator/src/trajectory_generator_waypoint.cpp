@@ -208,3 +208,144 @@ Eigen::MatrixXd TrajectoryGeneratorWaypoint::PolyQPGeneration(
     }
     return PolyCoeff;
 }
+void TrajectoryGeneratorWaypoint::initGridMap(double _resolution, Vector3d global_xyz_l, Vector3d global_xyz_u, int max_x_id, int max_y_id, int max_z_id)
+{   
+    gl_xl = global_xyz_l(0);
+    gl_yl = global_xyz_l(1);
+    gl_zl = global_xyz_l(2);
+
+    gl_xu = global_xyz_u(0);
+    gl_yu = global_xyz_u(1);
+    gl_zu = global_xyz_u(2);
+    
+    GLX_SIZE = max_x_id;
+    GLY_SIZE = max_y_id;
+    GLZ_SIZE = max_z_id;
+    GLYZ_SIZE  = GLY_SIZE * GLZ_SIZE;
+    GLXYZ_SIZE = GLX_SIZE * GLYZ_SIZE;
+
+    resolution = _resolution;
+    inv_resolution = 1.0 / _resolution;    
+
+    data = new uint8_t[GLXYZ_SIZE];
+    memset(data, 0, GLXYZ_SIZE * sizeof(uint8_t));
+}
+void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coord_y, const double coord_z)
+{   
+    if( coord_x < gl_xl  || coord_y < gl_yl  || coord_z <  gl_zl || 
+        coord_x >= gl_xu || coord_y >= gl_yu || coord_z >= gl_zu )
+        return;
+
+    int idx_x = static_cast<int>( (coord_x - gl_xl) * inv_resolution);
+    int idx_y = static_cast<int>( (coord_y - gl_yl) * inv_resolution);
+    int idx_z = static_cast<int>( (coord_z - gl_zl) * inv_resolution);      
+
+    if(idx_x== 0 || idx_y == 0 || idx_z == GLZ_SIZE || idx_x == GLX_SIZE || idx_y == GLY_SIZE)
+        data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z]         = 1;
+    else{
+        data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z]         = 1;
+        data[(idx_x+1) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z] = 1;
+        data[(idx_x+1) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z] = 1;
+        data[(idx_x-1) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z] = 1;
+        data[(idx_x-1) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z] = 1;
+        data[(idx_x) * GLYZ_SIZE + (idx_y+1) * GLZ_SIZE + idx_z]   = 1;
+        data[(idx_x) * GLYZ_SIZE + (idx_y-1) * GLZ_SIZE + idx_z]   = 1;
+        data[(idx_x+1) * GLYZ_SIZE + (idx_y) * GLZ_SIZE + idx_z]   = 1;
+        data[(idx_x-1) * GLYZ_SIZE + (idx_y) * GLZ_SIZE + idx_z]   = 1;
+    }
+}
+Vector3d TrajectoryGeneratorWaypoint::gridIndex2coord(const Vector3i & index) 
+{
+    Vector3d pt;
+
+    pt(0) = ((double)index(0) + 0.5) * resolution + gl_xl;
+    pt(1) = ((double)index(1) + 0.5) * resolution + gl_yl;
+    pt(2) = ((double)index(2) + 0.5) * resolution + gl_zl;
+    return pt;
+}
+Vector3i TrajectoryGeneratorWaypoint::coord2gridIndex(const Vector3d & pt) 
+{
+    Vector3i idx;
+    idx <<  min( max( int( (pt(0) - gl_xl) * inv_resolution), 0), GLX_SIZE - 1),
+            min( max( int( (pt(1) - gl_yl) * inv_resolution), 0), GLY_SIZE - 1),
+            min( max( int( (pt(2) - gl_zl) * inv_resolution), 0), GLZ_SIZE - 1);                  
+  
+    return idx;
+}
+Eigen::Vector3d TrajectoryGeneratorWaypoint::coordRounding(const Eigen::Vector3d & coord)
+{
+    return gridIndex2coord(coord2gridIndex(coord));
+}
+
+inline bool TrajectoryGeneratorWaypoint::isOccupied(const Eigen::Vector3i & index) const
+{
+    return isOccupied(index(0), index(1), index(2));
+}
+
+inline bool TrajectoryGeneratorWaypoint::isFree(const Eigen::Vector3i & index) const
+{
+    return isFree(index(0), index(1), index(2));
+}
+
+inline bool TrajectoryGeneratorWaypoint::isOccupied(const int & idx_x, const int & idx_y, const int & idx_z) const 
+{
+    return  (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE && idx_z >= 0 && idx_z < GLZ_SIZE && 
+            (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] == 1));
+}
+
+inline bool TrajectoryGeneratorWaypoint::isFree(const int & idx_x, const int & idx_y, const int & idx_z) const 
+{
+    return (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE && idx_z >= 0 && idx_z < GLZ_SIZE && 
+           (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] < 1));
+}
+Vector3d TrajectoryGeneratorWaypoint::getPosPoly( MatrixXd polyCoeff, int k, double t )
+{
+    Vector3d ret;
+    int _poly_num1D = (int)polyCoeff.cols()/3;
+    for ( int dim = 0; dim < 3; dim++ )
+    {
+        VectorXd coeff = (polyCoeff.row(k)).segment( dim * _poly_num1D, _poly_num1D );
+        VectorXd time  = VectorXd::Zero( _poly_num1D );
+        
+        for(int j = 0; j < _poly_num1D; j ++)
+          if(j==0)
+              time(j) = 1.0;
+          else
+              time(j) = pow(t, j);
+
+        ret(dim) = coeff.dot(time);
+        //cout << "dim:" << dim << " coeff:" << coeff << endl;
+    }
+
+    return ret;
+}
+int TrajectoryGeneratorWaypoint::safeCheck( MatrixXd polyCoeff, VectorXd time)
+{
+    Vector3d pt;
+    int unsafe_segment = -1; //-1 -> the whole trajectory is safe
+
+    for(int i = 0; i < time.size(); i++ )
+    {   
+        for (double t = 0.0; t < time(i); t += 0.01)
+        {
+          pt = getPosPoly(polyCoeff, i, t);
+          Vector3i idx;
+          idx = coord2gridIndex(pt);
+          if(isOccupied(idx)){
+            unsafe_segment = i;
+            return unsafe_segment;
+          }
+        }
+    }
+    return unsafe_segment;
+}
+
+
+
+
+
+
+
+
+
+

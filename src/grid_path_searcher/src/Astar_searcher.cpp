@@ -84,8 +84,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
     int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
     if(expand_size<=0)
         expand_size=1;
-
-    // if(idx_z==1)
+        // if(idx_z==1)
         // ROS_INFO("obs x=%d y=%d  z=%d",idx_x,idx_y,idx_z);
 
     for (int i=-expand_size;i<=expand_size;i++)
@@ -107,7 +106,7 @@ void AstarPathFinder::setObs(const double coord_x, const double coord_y, const d
                 data[temp_x * GLYZ_SIZE + temp_y * GLZ_SIZE + temp_z] = 1;//index(grid)
             }
     
-
+    
     //高分辨率地图的创建
     double high_resolution=resolution/resolution_ratio;//分辨率
     double high_inv_resolution=1/high_resolution;//反分辨率
@@ -653,7 +652,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
             double d=sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)+(z1-z2)*(z1-z2));
 
             // double divide_piece_num=d*2;//碰撞检测划分份数
-            double divide_piece_num=1000;
+            double divide_piece_num=20;
             ROS_INFO("d=%f         step=%f ",d,1.0/divide_piece_num);
             for (double k=0;k<1;k+=1.0/divide_piece_num)
             {

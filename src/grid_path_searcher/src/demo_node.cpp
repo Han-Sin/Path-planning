@@ -73,6 +73,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
 {
     if(_has_map ) return;
 
+
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::PointCloud<pcl::PointXYZ> cloud_vis;
     sensor_msgs::PointCloud2 map_vis;
