@@ -72,7 +72,7 @@ void rcvVelCallBack(nav_msgs::Path vel)
             drone_pos.push_back(current_pos);
             visVisitedNode(drone_pos);
 
-            // ROS_INFO("v_mode=%f   ",v_mod);
+            ROS_INFO("v_mode=%f   ",v_mod);
             ros::Rate rate(200);
             rate.sleep();
         }
