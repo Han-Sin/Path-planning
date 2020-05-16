@@ -519,7 +519,7 @@ vector<Vector3d> AstarPathFinder::getPath()
 {
     vector<Vector3d> path;
     vector<GridNodePtr> gridPath;
-    ROS_INFO("check1");
+    // ROS_INFO("check1");
     GridNodePtr tempPtr=terminatePtr;
     /*
     *
@@ -544,7 +544,7 @@ vector<Vector3d> AstarPathFinder::getPath()
 
     terminatePtr=tempPtr;
 
-    ROS_INFO("gird_path  got  !");
+    // ROS_INFO("gird_path  got  !");
     return path;
 }
 
@@ -748,7 +748,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints(int max_gap)
     for (auto ptr: gridPath)
     {
         path.push_back(ptr->coord);//维护path
-        ROS_INFO("coord_x=%f   y=%f   z=%f",ptr->coord(0),ptr->coord(1),ptr->coord(2));
+        // ROS_INFO("coord_x=%f   y=%f   z=%f",ptr->coord(0),ptr->coord(1),ptr->coord(2));
     }
         
     reverse(path.begin(),path.end());//这步在可视化上没有区别

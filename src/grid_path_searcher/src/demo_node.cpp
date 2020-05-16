@@ -39,14 +39,14 @@ int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
-ros::Publisher  _grid_path_vis_pub, _visited_nodes_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
+ros::Publisher  _grid_path_vis_pub,_grid_path_vis_pub_jps, _visited_nodes_vis_pub,_visited_nodes_jps_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
 void rcvWaypointsCallback(const nav_msgs::Path & wp);
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
 
 void visGridPath( vector<Vector3d> nodes, bool is_use_jps );
-void visVisitedNode( vector<Vector3d> nodes );
+void visVisitedNode( vector<Vector3d> nodes,bool flag);
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt);
 
 void rcvWaypointsCallback(const nav_msgs::Path & wp)
@@ -112,15 +112,15 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     ros::Time time_1 = ros::Time::now();
 
-#define _use_jps 0
-#if !_use_jps
+#define _use_jps 1
+#if _use_jps
 {
     _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
     auto visited_nodes = _astar_path_finder->getVisitedNodes();
     auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
-    ROS_INFO("Using A*!");
+    // ROS_INFO("Using A*!");
     //发布不采样的关键点
     // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
     // _simplified_waypoints_pub2.publish(_astar_path_finder->vector3d_to_waypoints(simplified_points_path2));
@@ -129,14 +129,14 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
     _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
     // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-    visVisitedNode(simplified_points_path);//可视化关键点
+    // visVisitedNode(simplified_points_path);//可视化关键点
     // _simplified_waypoints_pub.publish(simplified_waypoints);
     // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
     ros::Time time_2 = ros::Time::now();
     ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
     //Visualize the result
-    // visGridPath (grid_path, false);//可视化搜寻的栅格地图
-    // visVisitedNode(visited_nodes);
+    visGridPath (grid_path, false);//可视化搜寻的栅格地图
+    visVisitedNode(visited_nodes,0);
     // visVisitedNode(simplified_points_path);
     // visVisitedNode(simplified_path_RDP);
     //Reset map for next call
@@ -149,7 +149,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     
 #if _use_jps
     {
-        ROS_INFO("Using JPS!");
+        // ROS_INFO("Using JPS!");
         //Call JPS to search for a path
         _jps_path_finder -> JPSGraphSearch(start_pt, target_pt);
 
@@ -159,7 +159,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
         //Visualize the result
         visGridPath   (grid_path, _use_jps);
-        visVisitedNode(visited_nodes);
+        visVisitedNode(visited_nodes,1);
 
         //Reset map for next call
         _jps_path_finder->resetUsedGrids();
@@ -189,7 +189,9 @@ int main(int argc, char** argv)
 
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
+    _grid_path_vis_pub_jps        = nh.advertise<visualization_msgs::Marker>("grid_path_vis_jps", 1);
     _visited_nodes_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_vis",1);
+    _visited_nodes_jps_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_jps_vis", 1);
     _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);//发布优化后的轨迹
     
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
@@ -263,7 +265,7 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
     if(is_use_jps){
         node_vis.color.a = 1.0;
         node_vis.color.r = 1.0;
-        node_vis.color.g = 1.0;
+        node_vis.color.g = 0.0;
         node_vis.color.b = 0.0;
     }
     else{
@@ -288,12 +290,15 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
         node_vis.points.push_back(pt);
     }
 
-    _grid_path_vis_pub.publish(node_vis);
+    if(is_use_jps)
+        _grid_path_vis_pub_jps.publish(node_vis);
+    else
+        _grid_path_vis_pub.publish(node_vis);
 }
 
-void visVisitedNode( vector<Vector3d> nodes )
-{   
-    visualization_msgs::Marker node_vis; 
+void visVisitedNode(vector<Vector3d> nodes,bool is_use_jps)
+{
+    visualization_msgs::Marker node_vis;
     node_vis.header.frame_id = "world";
     node_vis.header.stamp = ros::Time::now();
     node_vis.ns = "demo_node/expanded_nodes";
@@ -305,17 +310,29 @@ void visVisitedNode( vector<Vector3d> nodes )
     node_vis.pose.orientation.y = 0.0;
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
-    node_vis.color.a = 0.8;
-    node_vis.color.r = 0.0;
-    node_vis.color.g = 0.0;
-    node_vis.color.b = 1.0;
+
+    if(is_use_jps)
+    {
+        node_vis.color.a = 0.4;
+        node_vis.color.r = 0.0;
+        node_vis.color.g = 0.0;
+        node_vis.color.b = 1.0;
+    }
+    else
+    {
+        node_vis.color.a = 0.15;
+        node_vis.color.r = 0.0;
+        node_vis.color.g = 1.0;
+        node_vis.color.b = 0.0;
+    }
+
 
     node_vis.scale.x = _resolution;
     node_vis.scale.y = _resolution;
     node_vis.scale.z = _resolution;
 
     geometry_msgs::Point pt;
-    for(int i = 0; i < int(nodes.size()); i++)
+    for (int i = 0; i < int(nodes.size()); i++)
     {
         Vector3d coord = nodes[i];
         pt.x = coord(0);
@@ -325,5 +342,8 @@ void visVisitedNode( vector<Vector3d> nodes )
         node_vis.points.push_back(pt);
     }
 
-    _visited_nodes_vis_pub.publish(node_vis);
+    if(is_use_jps)
+        _visited_nodes_jps_vis_pub.publish(node_vis);
+    else
+        _visited_nodes_vis_pub.publish(node_vis);
 }

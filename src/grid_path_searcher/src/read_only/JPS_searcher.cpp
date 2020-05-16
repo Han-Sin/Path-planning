@@ -168,6 +168,7 @@ bool dead_loop_checker(GridNodePtr Ptr,GridNodePtr lastPtr)
 
 void JPSPathFinder::JPSGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt)
 {
+    // int find_count=0;
     ros::Time time_1 = ros::Time::now();    
 
     //index of start_point and end_point
@@ -227,15 +228,26 @@ void JPSPathFinder::JPSGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end
         *
         */
 
-        // if the current node is the goal 
-        std::multimap<double, GridNodePtr> ::iterator it;
-        it = openSet.begin();
-        currentPtr = (*it).second;
-        openSet.erase(it);
-        currentPtr->id = -1;
-        // cout<<currentPtr->index<<endl;
-        // cout<<goalIdx<<endl;
-        // cout<<"      -------------------------        "<<endl;
+        // // if the current node is the goal 
+        // std::multimap<double, GridNodePtr> ::iterator it;
+        // it = openSet.begin();
+        // currentPtr = (*it).second;
+        // openSet.erase(it);
+        // currentPtr->id = -1;
+        // // cout<<currentPtr->index<<endl;
+        // // cout<<goalIdx<<endl;
+        // // cout<<"      -------------------------        "<<endl;
+
+        std::multimap<double, GridNodePtr>::iterator itFoundmin;
+        for (itFoundmin = openSet.begin(); itFoundmin != openSet.end(); itFoundmin++)
+        {
+            if (itFoundmin->second->id == 1)    //说明该节点没被访问过
+            {
+                currentPtr = itFoundmin->second;
+                currentPtr->id = -1;    //标记当前节点为已访问状态
+                break;
+            }
+        }
 
         
         
@@ -244,6 +256,7 @@ void JPSPathFinder::JPSGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end
         if( currentPtr->index == goalIdx ){
             ros::Time time_2 = ros::Time::now();
             terminatePtr = currentPtr;
+            // ROS_WARN("find_count_jps=%d",find_count);
             ROS_WARN("[JPS]{sucess} Time in JPS is %f ms, path cost if %f m", (time_2 - time_1).toSec() * 1000.0, currentPtr->gScore * resolution );    
             return;
         }
@@ -257,95 +270,33 @@ void JPSPathFinder::JPSGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end
         please write your code below
         *        
         */         
+    //    find_count+=(int)neighborPtrSets.size();
         for(int i = 0; i < (int)neighborPtrSets.size(); i++){
-            /*
-            *
-            *
-            Judge if the neigbors have been expanded
-            please write your code below
-            
-            IMPORTANT NOTE!!!
-            neighborPtrSets[i]->id = -1 : unexpanded
-            neighborPtrSets[i]->id = 1 : expanded, equal to this node is in close set
-            *        
-            */
             neighborPtr = neighborPtrSets[i];
-            tentative_gScore = edgeCostSets[i];
-            if(neighborPtr -> id == 0){ //discover a new node
-                /*
-                *
-                *
-                STEP 6:  As for a new node, do what you need do ,and then put neighbor in open set and record it
-                please write your code below
-                *        
-                */
-                neighborPtr->gScore = currentPtr->gScore + tentative_gScore;
-                neighborPtr->fScore=neighborPtr->gScore+getHeu(neighborPtr,endPtr);
-
-                if(dead_loop_checker(neighborPtr,currentPtr))
-                    ROS_WARN("dead loop!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
-                neighborPtr->cameFrom=currentPtr;
-                neighborPtr->id=1;//push into openlist
-                openSet.insert(make_pair(neighborPtr->fScore,neighborPtr));
-
-                // ROS_INFO("Discover a new node!");
-
+            if (neighborPtr->id == 0)   //发现一个新节点
+            { 
+                neighborPtr->id = 1;    //标记该节点为未访问状态
+                neighborPtr->cameFrom = currentPtr;
+                neighborPtr->gScore = currentPtr->gScore + edgeCostSets[i];
+                neighborPtr->fScore = neighborPtr->gScore + getHeu(neighborPtr, endPtr);
+                openSet.insert(make_pair(neighborPtr->fScore, neighborPtr));
                 continue;
             }
-            else if(neighborPtr -> id == 1){ //in open set and need update
-                /*
-                *
-                *
-                STEP 7:  As for a node in open set, update it , maintain the openset ,and then put neighbor in open set and record it
-                please write your code below
-                *        
-                */
-                if(neighborPtr->gScore > currentPtr->gScore + tentative_gScore)
-                {
-                    neighborPtr->gScore = tentative_gScore;
-                    neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
-
-                    if(dead_loop_checker(neighborPtr,currentPtr))
-                    ROS_WARN("dead loop!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
-                    neighborPtr->cameFrom = currentPtr;
-                    // if change its parents, update the expanding direction 
-                    //THIS PART IS ABOUT JPS, you can ignore it when you do your Astar work
-                    for(int i = 0; i < 3; i++){
-                    neighborPtr->dir(i) = neighborPtr->index(i) - currentPtr->index(i);
-                    if( neighborPtr->dir(i) != 0)
-                        neighborPtr->dir(i) /= abs( neighborPtr->dir(i) );
-                    }
-                }      
-
-                // ROS_INFO("Discover a node in openset!");
-                continue; 
-            }
-            else if(neighborPtr -> id == -1)
+            else if(neighborPtr->id == 1)   //该节点已经在openSet内
             {
-                if(neighborPtr->gScore > currentPtr->gScore + tentative_gScore)
-                {
+                tentative_gScore = currentPtr->gScore + edgeCostSets[i];
+
+                if(tentative_gScore <= neighborPtr->gScore)   //当前路线的g(n) <= openSet中的g(n), 需要更新
+                
                     neighborPtr->gScore = tentative_gScore;
-                    neighborPtr->fScore = neighborPtr->gScore+getHeu(neighborPtr,endPtr);
-
-                    if(dead_loop_checker(neighborPtr,currentPtr))
-                    ROS_WARN("dead loop!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
+                    neighborPtr->fScore = neighborPtr->gScore + getHeu(neighborPtr, endPtr);
                     neighborPtr->cameFrom = currentPtr;
-                    neighborPtr -> id= 1 ;
-                    // if change its parents, update the expanding direction 
-                    //THIS PART IS ABOUT JPS, you can ignore it when you do your Astar work
-                    for(int i = 0; i < 3; i++){
-                    neighborPtr->dir(i) = neighborPtr->index(i) - currentPtr->index(i);
-                    if( neighborPtr->dir(i) != 0)
-                        neighborPtr->dir(i) /= abs( neighborPtr->dir(i) );
+                    for (int i = 0; i < 3; i++)   //计算新的扩展方向 
+                    {
+                        neighborPtr->dir(i) = neighborPtr->index(i) - currentPtr->index(i);
+                        if (neighborPtr->dir(i) != 0)
+                            neighborPtr->dir(i) /= abs(neighborPtr->dir(i));
                     }
-
-                    openSet.insert(make_pair(neighborPtr->fScore,neighborPtr));
-                }  
-                // ROS_INFO("Discover a node discovered!");    
-                continue;   
             }
         }
     }

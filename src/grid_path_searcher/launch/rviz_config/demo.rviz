@@ -104,6 +104,15 @@ Visualization Manager:
 
     - Class: rviz/Marker
       Enabled: true
+      Marker Topic: /demo_node/visited_nodes_jps_vis
+      Name: key_points_jps
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
+    - Class: rviz/Marker
+      Enabled: true
       Marker Topic: /drone_node/drone_pos
       Name: Drone_pos
       Namespaces:
@@ -113,17 +122,27 @@ Visualization Manager:
 
 
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /demo_node/grid_path_vis
-      Name: gridPath
+      Name: gridPath_astar
       Namespaces:
         demo_node/jps_path: true
       Queue Size: 100
       Value: true
+
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /demo_node/grid_path_vis_jps
+      Name: gridPath_jps
+      Namespaces:
+        demo_node/jps_path: true
+      Queue Size: 100
+      Value: true
+
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory
-      Name: Marker
+      Name: Iterated_Path
       Namespaces:
         {}
       Queue Size: 100
@@ -132,7 +151,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory2
-      Name: Marker
+      Name: Raw_Path
       Namespaces:
         {}
       Queue Size: 100
@@ -142,7 +161,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /trajectory_generator_node/vis_waypoint_path
-      Name: Marker
+      Name: lian_xian
       Namespaces:
         {}
       Queue Size: 100
