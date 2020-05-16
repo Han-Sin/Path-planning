@@ -519,7 +519,7 @@ vector<Vector3d> AstarPathFinder::getPath()
 {
     vector<Vector3d> path;
     vector<GridNodePtr> gridPath;
-
+    ROS_INFO("check1");
     GridNodePtr tempPtr=terminatePtr;
     /*
     *
@@ -529,16 +529,22 @@ vector<Vector3d> AstarPathFinder::getPath()
     *
     */
     while(terminatePtr!=NULL){
+        // ROS_INFO("check2");
         gridPath.push_back(terminatePtr);
+        // ROS_INFO("x=%f  y=%f  z=%f  ",terminatePtr->coord(0),terminatePtr->coord(1),terminatePtr->coord(2));
         terminatePtr = terminatePtr->cameFrom;
     }
     for (auto ptr: gridPath)
+    {
         path.push_back(ptr->coord);
+        // ROS_INFO("check3");
+    }
         
     reverse(path.begin(),path.end());
 
     terminatePtr=tempPtr;
 
+    ROS_INFO("gird_path  got  !");
     return path;
 }
 
@@ -844,7 +850,7 @@ vector<Vector3d> AstarPathFinder::getSimplifiedPoints_by_lines()
     int line_point_count=0;
 
     double default_resolution=0.2;
-    int point_gap_max=3*(int)(default_resolution/resolution);//关键点间最大间隔数
+    int point_gap_max=1000*(int)(default_resolution/resolution);//关键点间最大间隔数
     // int point_gap_max=4;
     // ROS_INFO("point_gap_max=%d   resolution=%f",point_gap_max,resolution);
 

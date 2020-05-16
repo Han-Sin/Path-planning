@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
 
-    ros::Rate rate(100);
+    ros::Rate rate(200);
     bool status = ros::ok();
 
     // ros::AsyncSpinner spinner(4); // Use 4 threads

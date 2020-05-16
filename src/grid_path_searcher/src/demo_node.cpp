@@ -109,14 +109,18 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 {
     //Call A* to search for a path
-    _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
 
     ros::Time time_1 = ros::Time::now();
 
+#define _use_jps 0
+#if !_use_jps
+{
+    _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
     auto visited_nodes = _astar_path_finder->getVisitedNodes();
     auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
+    ROS_INFO("Using A*!");
     //发布不采样的关键点
     // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
     // _simplified_waypoints_pub2.publish(_astar_path_finder->vector3d_to_waypoints(simplified_points_path2));
@@ -131,7 +135,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     ros::Time time_2 = ros::Time::now();
     ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
     //Visualize the result
-    visGridPath (grid_path, false);//可视化搜寻的栅格地图
+    // visGridPath (grid_path, false);//可视化搜寻的栅格地图
     // visVisitedNode(visited_nodes);
     // visVisitedNode(simplified_points_path);
     // visVisitedNode(simplified_path_RDP);
@@ -140,9 +144,12 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 0 -> Do not use JPS
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
-#define _use_jps 0
+}
+#endif
+    
 #if _use_jps
     {
+        ROS_INFO("Using JPS!");
         //Call JPS to search for a path
         _jps_path_finder -> JPSGraphSearch(start_pt, target_pt);
 
@@ -215,18 +222,18 @@ int main(int argc, char** argv)
     ros::Rate rate(100);
     bool status = ros::ok();
 
-    ros::AsyncSpinner spinner(4); // Use 4 threads
+    // ros::AsyncSpinner spinner(4); // Use 4 threads
     
     while(status) 
     {
-        // ros::spinOnce();      
-        // status = ros::ok();
-        // rate.sleep();
-        spinner.start();
+        ros::spinOnce();      
         status = ros::ok();
-        ros::waitForShutdown();
+        rate.sleep();
+        // spinner.start();
+        // status = ros::ok();
+        // ros::waitForShutdown();
     }
-    spinner.stop();
+    // spinner.stop();
 
     delete _astar_path_finder;
     delete _jps_path_finder;
@@ -256,7 +263,7 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
     if(is_use_jps){
         node_vis.color.a = 1.0;
         node_vis.color.r = 1.0;
-        node_vis.color.g = 0.0;
+        node_vis.color.g = 1.0;
         node_vis.color.b = 0.0;
     }
     else{

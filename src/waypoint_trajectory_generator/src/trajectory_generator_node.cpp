@@ -165,7 +165,7 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
             visWayPointTraj( _polyCoeff, _polyTime,2);
             //为了迭代更加清楚，这里每次画图停止1s，工程实际使用要去掉哦
             ros::Rate rate(1);
-            rate.sleep();
+            // rate.sleep();
         }
     ROS_INFO("iterated %d times",count);
     // if(count<=10)
@@ -354,8 +354,8 @@ void visWayPointPath(MatrixXd path)
     line_list.color.a = 1.0;
 
     
-    line_list.color.r = 0.0;
-    line_list.color.g = 1.0;
+    line_list.color.r = 1.0;
+    line_list.color.g = 0.5;
     line_list.color.b = 0.0;
     
     line_list.points.clear();
