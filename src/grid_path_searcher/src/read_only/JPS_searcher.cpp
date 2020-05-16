@@ -238,16 +238,7 @@ void JPSPathFinder::JPSGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end
         // cout<<"      -------------------------        "<<endl;
 
         
-        std::multimap<double, GridNodePtr>::iterator itFoundmin;
-        for (itFoundmin = openSet.begin(); itFoundmin != openSet.end(); itFoundmin++)
-        {
-            if (itFoundmin->second->id == 1)    //说明该节点没被访问过
-            {
-                currentPtr = itFoundmin->second;
-                currentPtr->id = -1;    //标记当前节点为已访问状态
-                break;
-            }
-        }
+        
 
 
         if( currentPtr->index == goalIdx ){
