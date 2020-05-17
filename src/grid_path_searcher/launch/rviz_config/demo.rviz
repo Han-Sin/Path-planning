@@ -123,6 +123,16 @@ Visualization Manager:
 
     - Class: rviz/Marker
       Enabled: true
+      Marker Topic: /demo_node/RRTstar_path_vis
+      Name: gridPath_RRT
+      Namespaces:
+        demo_node/jps_path: true
+      Queue Size: 100
+      Value: true
+
+
+    - Class: rviz/Marker
+      Enabled: true
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath_astar
       Namespaces:
