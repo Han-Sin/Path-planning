@@ -66,7 +66,7 @@ class AstarPathFinder
 		void setObs(const double coord_x, const double coord_y, const double coord_z);
 
 		Eigen::Vector3d coordRounding(const Eigen::Vector3d & coord);
-		std::vector<Eigen::Vector3d> getPath(bool flag=0);
+		std::vector<Eigen::Vector3d> getPath();
 		std::vector<Eigen::Vector3d> getVisitedNodes();
 		std::vector<Eigen::Vector3d> getTurningPoints();
 		// std::pair<std::vector<Eigen::Vector3d>,nav_msgs::Path>  getSimplifiedPoints();

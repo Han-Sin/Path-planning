@@ -147,7 +147,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
 
-#define _use_jps 1
+#define _use_jps 0
 #if _use_jps
     {
         // ROS_INFO("Using JPS!");
@@ -172,7 +172,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 #if _use_rrt
     {
         _rrt_path_finder->RRTSearch(start_pt,target_pt);
-        auto grid_path     = _rrt_path_finder->getPath(1);
+        auto grid_path     = _rrt_path_finder->getPath();
         auto visited_nodes = _rrt_path_finder->getVisitedNodes();
 
         //Visualize the result

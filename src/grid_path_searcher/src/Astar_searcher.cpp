@@ -515,7 +515,7 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt)
 }
 
 
-vector<Vector3d> AstarPathFinder::getPath(bool flag)
+vector<Vector3d> AstarPathFinder::getPath()
 {
     vector<Vector3d> path;
     vector<GridNodePtr> gridPath;
