@@ -10,10 +10,14 @@
 #include "backward.hpp"
 #include "node.h"
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
+#include <Eigen/Eigen>
+using namespace std;
 //#include <waypoint_trajectory_generator/Trajectoy.h>
 //#include <waypoint_trajectory_generator/trajpoint.h>
-
-
+#define RAND_MAX  65535
+#define INF 999999
 class AstarPathFinder
 {	
 	private:
@@ -62,7 +66,7 @@ class AstarPathFinder
 		void setObs(const double coord_x, const double coord_y, const double coord_z);
 
 		Eigen::Vector3d coordRounding(const Eigen::Vector3d & coord);
-		std::vector<Eigen::Vector3d> getPath();
+		std::vector<Eigen::Vector3d> getPath(bool flag=0);
 		std::vector<Eigen::Vector3d> getVisitedNodes();
 		std::vector<Eigen::Vector3d> getTurningPoints();
 		// std::pair<std::vector<Eigen::Vector3d>,nav_msgs::Path>  getSimplifiedPoints();
@@ -73,5 +77,22 @@ class AstarPathFinder
 		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
 		bool if_collision(int x,int y,int z);
 };
+
+
+class RRTPathSearch:public AstarPathFinder
+{
+private:
+	/* data */
+public:
+	RRTPathSearch(){
+		srand((unsigned)time(NULL)); 
+	};
+	bool safe_check(Eigen::Vector3i pos1,Eigen::Vector3i pos2);
+	~RRTPathSearch(){};
+	void RRTSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt);
+};
+
+
+
 
 #endif
