@@ -39,15 +39,19 @@ int _max_x_id, _max_y_id, _max_z_id;
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
-ros::Publisher  _grid_path_vis_pub,_grid_path_vis_pub_jps, _visited_nodes_vis_pub,_visited_nodes_jps_vis_pub, _grid_map_vis_pub,_simplified_waypoints_pub;
+
+ros::Publisher  _grid_path_vis_pub,_grid_path_vis_pub_jps,_grid_path_vis_pub_rrt,
+ _visited_nodes_vis_pub,_visited_nodes_jps_vis_pub,_visited_nodes_rrt_vis_pub,
+  _grid_map_vis_pub,_simplified_waypoints_pub;
+
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
 RRTPathSearch   *  _rrt_path_finder  = new RRTPathSearch();
 void rcvWaypointsCallback(const nav_msgs::Path & wp);
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
 
-void visGridPath( vector<Vector3d> nodes, bool is_use_jps );
-void visVisitedNode( vector<Vector3d> nodes,bool flag);
+void visGridPath( vector<Vector3d> nodes, int alogrithm_choice );
+void visVisitedNode( vector<Vector3d> nodes,int alogrithm_choice);
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt);
 
 void rcvWaypointsCallback(const nav_msgs::Path & wp)
@@ -113,9 +117,6 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
 
     ros::Time time_1 = ros::Time::now();
 
-#define _use_jps 1
-#if _use_jps
-{
     _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
@@ -136,7 +137,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     ros::Time time_2 = ros::Time::now();
     // ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
     //Visualize the result
-    visGridPath (grid_path, false);//可视化搜寻的栅格地图
+    visGridPath (grid_path, 0);//可视化搜寻的栅格地图
     visVisitedNode(visited_nodes,0);
     // visVisitedNode(simplified_points_path);
     // visVisitedNode(simplified_path_RDP);
@@ -145,38 +146,45 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 0 -> Do not use JPS
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
-}
-#endif
-    
+
+#define _use_jps 1
 #if _use_jps
     {
         // ROS_INFO("Using JPS!");
         //Call JPS to search for a path
-        /*_jps_path_finder -> JPSGraphSearch(start_pt, target_pt);
+        _jps_path_finder -> JPSGraphSearch(start_pt, target_pt);
 
         //Retrieve the path
         auto grid_path     = _jps_path_finder->getPath();
         auto visited_nodes = _jps_path_finder->getVisitedNodes();
 
         //Visualize the result
-        visGridPath   (grid_path, _use_jps);
+        visGridPath   (grid_path, 1);
         visVisitedNode(visited_nodes,1);
 
         //Reset map for next call
-        _jps_path_finder->resetUsedGrids();*/
+        _jps_path_finder->resetUsedGrids();
+        
+    }
+#endif
+
+#define _use_rrt 1
+#if _use_rrt
+    {
         _rrt_path_finder->RRTSearch(start_pt,target_pt);
         auto grid_path     = _rrt_path_finder->getPath(1);
         auto visited_nodes = _rrt_path_finder->getVisitedNodes();
 
         //Visualize the result
-        visGridPath   (grid_path, _use_jps);
-        visVisitedNode(visited_nodes,1);
+        visGridPath   (grid_path, 2);//2 for RRT
+        visVisitedNode(visited_nodes,2);
 
         //Reset map for next call
         _rrt_path_finder->resetUsedGrids();
-        
     }
 #endif
+
+
 }
 
 void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
@@ -202,8 +210,10 @@ int main(int argc, char** argv)
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
     _grid_path_vis_pub_jps        = nh.advertise<visualization_msgs::Marker>("grid_path_vis_jps", 1);
+    _grid_path_vis_pub_rrt        = nh.advertise<visualization_msgs::Marker>("grid_path_vis_rrt", 1);
     _visited_nodes_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_vis",1);
     _visited_nodes_jps_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_jps_vis", 1);
+    _visited_nodes_rrt_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_rrt_vis", 1);
     _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);//发布优化后的轨迹
     
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
@@ -259,14 +269,43 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
+void visGridPath( vector<Vector3d> nodes, int alogrithm_choice )
 {   
     visualization_msgs::Marker node_vis; 
     node_vis.header.frame_id = "world";
     node_vis.header.stamp = ros::Time::now();
-    if(is_use_jps)
-        node_vis.ns = "demo_node/jps_path";
-    else
+    
+    switch(alogrithm_choice)
+    {
+        case 0://for A*
+        {
+            node_vis.color.a = 1.0;
+            node_vis.color.r = 1.0;
+            node_vis.color.g = 1.0;
+            node_vis.color.b = 1.0;
+            break;
+        }
+        case 1:
+        {
+            node_vis.color.a = 1.0;
+            node_vis.color.r = 1.0;
+            node_vis.color.g = 0.0;
+            node_vis.color.b = 0.0;
+            break;
+        }
+        case 2:
+        {
+            node_vis.color.a = 1.0;
+            node_vis.color.r = 0.0;
+            node_vis.color.g = 0.0;
+            node_vis.color.b = 1.0;
+        }
+
+    }
+    
+    // if(is_use_jps)
+    //     node_vis.ns = "demo_node/jps_path";
+    // else
         node_vis.ns = "demo_node/astar_path";
 
     node_vis.type = visualization_msgs::Marker::CUBE_LIST;
@@ -279,18 +318,18 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
     node_vis.pose.orientation.w = 1.0;
     
 
-    if(is_use_jps){
-        node_vis.color.a = 1.0;
-        node_vis.color.r = 1.0;
-        node_vis.color.g = 0.0;
-        node_vis.color.b = 0.0;
-    }
-    else{
-        node_vis.color.a = 1.0;
-        node_vis.color.r = 1.0;
-        node_vis.color.g = 1.0;
-        node_vis.color.b = 1.0;
-    }
+    // if(is_use_jps){
+    //     node_vis.color.a = 1.0;
+    //     node_vis.color.r = 1.0;
+    //     node_vis.color.g = 0.0;
+    //     node_vis.color.b = 0.0;
+    // }
+    // else{
+    //     node_vis.color.a = 1.0;
+    //     node_vis.color.r = 1.0;
+    //     node_vis.color.g = 1.0;
+    //     node_vis.color.b = 1.0;
+    // }
 
 
     node_vis.scale.x = _resolution;
@@ -307,13 +346,29 @@ void visGridPath( vector<Vector3d> nodes, bool is_use_jps )
         node_vis.points.push_back(pt);
     }
 
-    if(is_use_jps)
-        _grid_path_vis_pub_jps.publish(node_vis);
-    else
-        _grid_path_vis_pub.publish(node_vis);
+
+    switch(alogrithm_choice)
+    {
+        case 0://for A*
+        {
+            _grid_path_vis_pub.publish(node_vis);
+            break;
+        }
+        case 1:
+        {
+            _grid_path_vis_pub_jps.publish(node_vis);
+            break;
+        }
+        case 2:
+        {
+            _grid_path_vis_pub_rrt.publish(node_vis);
+            break;
+        }
+
+    }
 }
 
-void visVisitedNode(vector<Vector3d> nodes,bool is_use_jps)
+void visVisitedNode(vector<Vector3d> nodes,int alogrithm_choice)
 {
     visualization_msgs::Marker node_vis;
     node_vis.header.frame_id = "world";
@@ -328,20 +383,37 @@ void visVisitedNode(vector<Vector3d> nodes,bool is_use_jps)
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
 
-    if(is_use_jps)
+    switch(alogrithm_choice)
     {
-        node_vis.color.a = 0.4;
-        node_vis.color.r = 0.0;
-        node_vis.color.g = 0.0;
-        node_vis.color.b = 1.0;
+        case 0://for A*
+        {
+            node_vis.color.a = 0.15;
+            node_vis.color.r = 0.0;
+            node_vis.color.g = 1.0;
+            node_vis.color.b = 0.0;
+            break;
+        }
+
+        case 1://for JPS
+        {
+            node_vis.color.a = 0.4;
+            node_vis.color.r = 0.0;
+            node_vis.color.g = 0.0;
+            node_vis.color.b = 1.0;
+            break;
+        }
+        
+        case 2://for RRT
+        {
+            node_vis.color.a = 0.4;
+            node_vis.color.r = 1.0;
+            node_vis.color.g = 1.0;
+            node_vis.color.b = 1.0;
+            break;
+        }
     }
-    else
-    {
-        node_vis.color.a = 0.15;
-        node_vis.color.r = 0.0;
-        node_vis.color.g = 1.0;
-        node_vis.color.b = 0.0;
-    }
+    
+
 
 
     node_vis.scale.x = _resolution;
@@ -359,8 +431,24 @@ void visVisitedNode(vector<Vector3d> nodes,bool is_use_jps)
         node_vis.points.push_back(pt);
     }
 
-    if(is_use_jps)
-        _visited_nodes_jps_vis_pub.publish(node_vis);
-    else
-        _visited_nodes_vis_pub.publish(node_vis);
+    switch(alogrithm_choice)
+    {
+        case 0://for A*
+        {
+            _visited_nodes_vis_pub.publish(node_vis);
+            break;
+        }
+
+        case 1://for JPS
+        {
+            _visited_nodes_jps_vis_pub.publish(node_vis);
+            break;
+        }
+        
+        case 2://for RRT
+        {
+            _visited_nodes_rrt_vis_pub.publish(node_vis);
+            break;
+        }
+    }
 }
