@@ -57,5 +57,10 @@
         "core": "cpp",
         "string": "cpp",
         "iterator": "cpp"
-    }
+    },
+    "ros.distro": "kinetic",
+    "python.autoComplete.extraPaths": [
+        "/home/pn/Path-planning/devel/lib/python2.7/dist-packages",
+        "/opt/ros/kinetic/lib/python2.7/dist-packages"
+    ]
 }

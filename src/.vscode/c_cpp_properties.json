@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/pn/Path-planning/devel/include/**",
+                "/opt/ros/kinetic/include/**",
+                "/home/pn/Path-planning/src/drone_node/include/**",
+                "/home/pn/Path-planning/src/grid_path_searcher/include/**",
+                "/home/pn/Path-planning/src/quadrotor_msgs/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

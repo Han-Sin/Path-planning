@@ -92,7 +92,7 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: false
       Value: true
-
+#----------------------------------------------访问节点可视化----------------------------------------------
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /demo_node/visited_nodes_vis
@@ -105,7 +105,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /demo_node/visited_nodes_jps_vis
-      Name: key_points_jps
+      Name: visited_jps
       Namespaces:
         {}
       Queue Size: 100
@@ -113,14 +113,14 @@ Visualization Manager:
 
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /drone_node/drone_pos
-      Name: Drone_pos
+      Marker Topic: /demo_node/visited_nodes_rrt_vis
+      Name: visited_rrt
       Namespaces:
         {}
       Queue Size: 100
       Value: true
 
-
+#----------------------------------------------搜索路径可视化----------------------------------------------
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /demo_node/grid_path_vis
@@ -141,6 +141,26 @@ Visualization Manager:
 
     - Class: rviz/Marker
       Enabled: true
+      Marker Topic: /demo_node/grid_path_vis_rrt
+      Name: gridPath_rrt
+      Namespaces:
+        demo_node/jps_path: true
+      Queue Size: 100
+      Value: true
+#----------------------------------------------轨迹无人机可视化----------------------------------------------
+
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /drone_node/drone_pos
+      Name: Drone_pos
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
+      #迭代后的轨迹
+    - Class: rviz/Marker
+      Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory
       Name: Iterated_Path
       Namespaces:
@@ -148,6 +168,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
 
+      #迭代前的轨迹
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory2
@@ -157,7 +178,7 @@ Visualization Manager:
       Queue Size: 100
       Value: true
 
-      
+      #关键点连线
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /trajectory_generator_node/vis_waypoint_path
