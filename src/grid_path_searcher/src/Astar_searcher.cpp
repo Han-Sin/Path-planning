@@ -211,7 +211,7 @@ vector<Vector3d> AstarPathFinder::getVisitedNodes()
                     visited_nodes.push_back(GridNodeMap[i][j][k]->coord);
             }
 
-    ROS_WARN("visited_nodes size : %d", visited_nodes.size());
+    ROS_WARN("external visited_nodes size : %d", visited_nodes.size());
     return visited_nodes;
 }
 
@@ -529,16 +529,16 @@ vector<Vector3d> AstarPathFinder::getPath(bool flag)
     *
     */
 
-    double path_length_sum=0;
+    //double path_length_sum=0;
     while(terminatePtr!=NULL){
         // ROS_INFO("check2");
         gridPath.push_back(terminatePtr);
         // ROS_INFO("x=%f  y=%f  z=%f  ",terminatePtr->coord(0),terminatePtr->coord(1),terminatePtr->coord(2));
-        if(terminatePtr->cameFrom!=NULL)
-        {
-            path_length_sum+=(terminatePtr->coord-terminatePtr->cameFrom->coord).norm();
+        //if(terminatePtr->cameFrom!=NULL)
+        //{
+          //  path_length_sum+=(terminatePtr->coord-terminatePtr->cameFrom->coord).norm();
             // ROS_INFO("length=%f",(terminatePtr->coord-terminatePtr->cameFrom->coord).norm());
-        }
+        //}
 
         terminatePtr = terminatePtr->cameFrom;
     }
@@ -552,8 +552,8 @@ vector<Vector3d> AstarPathFinder::getPath(bool flag)
 
     terminatePtr=tempPtr;
     
-    if(flag)//显示RRT的路径长度
-        ROS_WARN("RRT path_length= %f m",path_length_sum);
+    //if(flag)//显示RRT的路径长度
+      //  ROS_WARN("RRT path_length= %f m",path_length_sum);
     // ROS_INFO("gird_path  got  !");
     return path;
 }
@@ -984,20 +984,21 @@ void RRTPathSearch::RRTSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt){
     //(rand() % (b-a))+ a    [a,b) ,本RRT全部采用栅格地图
     ros::Time time_1 = ros::Time::now();
     double step = 0.5;//步长
+    double threshold = 1;
     Vector3i start_idx = coord2gridIndex(start_pt);
     Vector3i end_idx   = coord2gridIndex(end_pt);
     //position of start_point and end_point
     start_pt = gridIndex2coord(start_idx);
     end_pt   = gridIndex2coord(end_idx);
 
-    vector<Vector3i> visited_grid;
+    vector<GridNodePtr> visited_grid;
 
     //Initialize the pointers of struct GridNode which represent start node and goal node
     GridNodePtr startPtr = new GridNode(start_idx, start_pt);
     GridNodePtr endPtr   = new GridNode(end_idx,   end_pt);
     GridNodeMap[start_idx(0)][start_idx(1)][start_idx(2)]->id = -1;
-    visited_grid.push_back(start_idx);
-
+    GridNodeMap[start_idx(0)][start_idx(1)][start_idx(2)]->gScore = 0;
+    visited_grid.push_back(GridNodeMap[start_idx(0)][start_idx(1)][start_idx(2)]);
     int sample_x,sample_y,sample_z;
     while(1){
         double min_distance =  INF;
@@ -1026,55 +1027,34 @@ void RRTPathSearch::RRTSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt){
         Vector3i tempidx;
         GridNodePtr ptr;
         //开始拓展树,遍历所有结点
-        // for(int ix=0;ix<GLX_SIZE;ix++){
-        //     for(int iy=0;iy<GLY_SIZE;iy++){
-        //         for(int iz=0;iz<GLZ_SIZE;iz++){
-        //             if(GridNodeMap[ix][iy][iz]->id==-1){
-        //                 //在树上的结点
-        //                 double distance;
-        //                 distance =  (GridNodeMap[ix][iy][iz]->coord-Sample_coord).norm();
-        //                 if(distance<min_distance){
-        //                     //find the min distance node
-        //                     min_distance = distance;
-        //                     tempidx(0) = ix;
-        //                     tempidx(1) = iy;
-        //                     tempidx(2) = iz;
-        //                     ptr = GridNodeMap[ix][iy][iz];
-        //                 }
-        //             }
-                    
-        //         }
-        //     }
-        // }
-
-        for (auto check_idx: visited_grid)
+        for (auto tree_node: visited_grid)
         {
                         //在树上的结点
             double distance;
-            distance =  (GridNodeMap[check_idx[0]][check_idx[1]][check_idx[2]]->coord-Sample_coord).norm();
+            distance =  (tree_node->coord-Sample_coord).norm();
             if(distance<min_distance){
                 //find the min distance node
                 min_distance = distance;
-                tempidx(0) = check_idx[0];
-                tempidx(1) = check_idx[1];
-                tempidx(2) = check_idx[2];
-                ptr = GridNodeMap[check_idx[0]][check_idx[1]][check_idx[2]];
+                tempidx(0) = tree_node->index(0);
+                tempidx(1) = tree_node->index(1);
+                tempidx(2) = tree_node->index(2);
+                ptr = tree_node;
             }
         }
 
         if(min_distance<=step){
             if(!safe_check(tempidx,Sample_idx)) continue;
-
-            visited_grid.push_back(Sample_idx);
-
+            visited_grid.push_back(GridNodeMap[Sample_idx(0)][Sample_idx(1)][Sample_idx(2)]);
             GridNodeMap[Sample_idx(0)][Sample_idx(1)][Sample_idx(2)]->id = -1;
             GridNodeMap[Sample_idx(0)][Sample_idx(1)][Sample_idx(2)]->cameFrom = ptr;
+            GridNodeMap[Sample_idx(0)][Sample_idx(1)][Sample_idx(2)]->gScore = ptr->gScore+min_distance;
+            terminatePtr = GridNodeMap[Sample_idx(0)][Sample_idx(1)][Sample_idx(2)];
             if(Sample_idx(0)==end_idx(0)&&Sample_idx(1)==end_idx(1)&&Sample_idx(2)==end_idx(2))//到达目标 
                 {
                     // ros::Time time_2 = ros::Time::now();
                     // ROS_WARN("Time consume in RRT* path finding is %f ms", (time_2 - time_1).toSec()*1000 );
                     break;
-                }
+            }
         }
         else{
             //直线拓展
@@ -1084,16 +1064,31 @@ void RRTPathSearch::RRTSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt){
             expand_coord = (Sample_coord-tempcoord)*step/min_distance+tempcoord;
             expand_idx = coord2gridIndex(expand_coord);
             if(!safe_check(tempidx,expand_idx)) continue;
-
-            visited_grid.push_back(expand_idx);
-
+            visited_grid.push_back(GridNodeMap[expand_idx(0)][expand_idx(1)][expand_idx(2)]);
             GridNodeMap[expand_idx(0)][expand_idx(1)][expand_idx(2)]->id=-1;
             GridNodeMap[expand_idx(0)][expand_idx(1)][expand_idx(2)]->cameFrom = ptr;
+            GridNodeMap[expand_idx(0)][expand_idx(1)][expand_idx(2)]->gScore = ptr->gScore+step;
+            terminatePtr = GridNodeMap[expand_idx(0)][expand_idx(1)][expand_idx(2)];
             if(expand_idx(0)==end_idx(0)&&expand_idx(1)==end_idx(1)&&expand_idx(2)==end_idx(2)) break;
         }
+        //for (auto ptr: gridPath)
+        //path.push_back(ptr->coord)
+        //RRT*部分，进行分支改造
+        for(GridNodePtr ptr:visited_grid){
+            if(ptr!=terminatePtr){
+                //不是自己
+                double d = (ptr->coord-terminatePtr->coord).norm();
+                if(d<threshold){
+                    if(ptr->gScore+d<terminatePtr->gScore){
+                        terminatePtr->gScore = ptr->gScore+d;
+                        terminatePtr->cameFrom = ptr;
+                    }
+                }    
+            }
+        }
     }
-    terminatePtr = GridNodeMap[end_idx(0)][end_idx(1)][end_idx(2)];
+    //terminatePtr = GridNodeMap[end_idx(0)][end_idx(1)][end_idx(2)];
     ros::Time time_2 = ros::Time::now();
-    ROS_WARN("Time consume in RRT path finding is %f ms", (time_2 - time_1).toSec()*1000 );
-    ROS_WARN("visited grid size=%d",visited_grid.size());
+    ROS_WARN("[RRT*]{sucess}  Time in RRT*  is %f ms, path cost if %f m", (time_2 - time_1).toSec() * 1000.0, terminatePtr->gScore);
+    //ROS_WARN("visited grid size=%d",visited_grid.size());
 }
