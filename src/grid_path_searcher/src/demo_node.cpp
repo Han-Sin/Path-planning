@@ -15,6 +15,7 @@
 #include "Astar_searcher.h"
 #include "JPS_searcher.h"
 #include "backward.hpp"
+#include "RRTPathSearch.h"
 //#include <waypoint_trajectory_generator/trajpoint.h>
 //#include <waypoint_trajectory_generator/Trajectoy.h>
 // #include <waypoint_trajectory_generator/trajpoint.h>
@@ -150,7 +151,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
 
-#define _use_jps 0
+#define _use_jps 1
 #if _use_jps
     {
         // ROS_INFO("Using JPS!");

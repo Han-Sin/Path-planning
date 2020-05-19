@@ -78,20 +78,26 @@ class AstarPathFinder
 		bool if_collision(int x,int y,int z);
 };
 
-
-class RRTPathSearch:public AstarPathFinder
+inline bool AstarPathFinder::isOccupied(const Eigen::Vector3i & index) const
 {
-private:
-	/* data */
-public:
-	RRTPathSearch(){
-		srand((unsigned)time(NULL)); 
-	};
-	bool safe_check(Eigen::Vector3i pos1,Eigen::Vector3i pos2);
-	~RRTPathSearch(){};
-	void RRTSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt);
-};
+    return isOccupied(index(0), index(1), index(2));
+}
 
+inline bool AstarPathFinder::isFree(const Eigen::Vector3i & index) const
+{
+    return isFree(index(0), index(1), index(2));
+}
+
+inline bool AstarPathFinder::isOccupied(const int & idx_x, const int & idx_y, const int & idx_z) const
+{
+    return  (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE && idx_z >= 0 && idx_z < GLZ_SIZE &&
+            (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] == 1));
+}
+inline bool AstarPathFinder::isFree(const int & idx_x, const int & idx_y, const int & idx_z) const
+{
+    return (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE && idx_z >= 0 && idx_z < GLZ_SIZE &&
+           (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] < 1));
+}
 
 
 
