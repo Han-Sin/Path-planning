@@ -104,7 +104,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
             break;
     }
 
-    
+    ros::Time time_corr_start=ros::Time::now();
     int last_node_order=0;
     int check_order=0;
     int suc_flag=0;
@@ -131,12 +131,17 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         ROS_INFO("last_node_order=%d     check_order=%d",last_node_order,check_order);
         GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
         FlightCube temp_cube(start_node,end_node);
+        temp_cube=_corridor->expand_cube(temp_cube);
         _corridor->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
             break;
     }
+    ros::Time time_corr_end=ros::Time::now();
+    ROS_INFO("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
     visCorridor();
+    ros::Time time_corr_vis=ros::Time::now();
+    ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
     _corridor->cubes.clear();
 
 
@@ -153,7 +158,9 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     
     //Trajectory generation: use minimum snap trajectory generation method
     //waypoints is the result of path planning (Manual in this homework)
-    trajGeneration(waypoints,0);
+    
+    
+    // trajGeneration(waypoints,0);
     //化简后的结点。
 }
 
@@ -533,7 +540,7 @@ void visCorridor()
     node_vis.header.stamp = ros::Time::now();
     
 
-    node_vis.color.a = 0.4;
+    node_vis.color.a = 0.2;
     node_vis.color.r = 0.0;
     node_vis.color.g = 0.0;
     node_vis.color.b = 1.0;

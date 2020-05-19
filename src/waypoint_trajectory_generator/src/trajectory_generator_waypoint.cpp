@@ -379,6 +379,112 @@ bool FlightCorridor::check_cube_safe(FlightCube cube)
 }
 
 
+FlightCube FlightCorridor::expand_cube(FlightCube cube)
+{
+    int max_expand_size=4;
+    int x_pos_origin=cube.x_pos_int;
+    int x_neg_origin=cube.x_neg_int;
+    int y_pos_origin=cube.y_pos_int;
+    int y_neg_origin=cube.y_neg_int;
+    int z_pos_origin=cube.z_pos_int;
+    int z_neg_origin=cube.z_neg_int;
+
+
+    bool at_least_one_suc_flag=1;
+    while(at_least_one_suc_flag)
+    {
+        at_least_one_suc_flag=0;
+        //for x
+        if(cube.x_pos_int-x_pos_origin<=max_expand_size)
+        {
+            cube.x_pos_int++;
+            if(!check_cube_safe(cube))
+                cube.x_pos_int--;
+            else
+                at_least_one_suc_flag=1;
+        }
+
+        if(cube.x_neg_int-x_neg_origin<=max_expand_size)
+        {
+            cube.x_neg_int++;
+            if(!check_cube_safe(cube))
+                cube.x_neg_int--;
+            else
+                at_least_one_suc_flag=1;
+        }
+
+        
+        // for y
+        if(cube.y_pos_int-y_pos_origin<=max_expand_size)
+        {
+            cube.y_pos_int++;
+            if(!check_cube_safe(cube))
+                cube.y_pos_int--;
+            else
+                at_least_one_suc_flag=1;
+        }
+        
+
+        if(cube.y_neg_int-y_neg_origin<=max_expand_size)
+        {
+            cube.y_neg_int++;
+            if(!check_cube_safe(cube))
+                cube.y_neg_int--;
+            else
+                at_least_one_suc_flag=1;  
+        }
+
+        
+        // for z
+        if(cube.z_pos_int-z_pos_origin<=max_expand_size)
+        {
+            cube.z_pos_int++;
+            if(!check_cube_safe(cube))
+                cube.z_pos_int--;
+            else
+                at_least_one_suc_flag=1;
+        }
+        
+
+
+        if(cube.z_neg_int-z_neg_origin<=max_expand_size)
+        {   
+            cube.z_neg_int++;
+            if(!check_cube_safe(cube))
+                cube.z_neg_int--;
+            else
+                at_least_one_suc_flag=1;
+        }
+        
+        // ROS_INFO("x= %d  %d  y=%d  %d   z=%d  %d ",cube.x_pos_int,cube.x_neg_int,cube.y_pos_int,
+        // cube.y_neg_int,cube.z_pos_int,cube.z_neg_int);
+    }
+    return cube;
+    // for(int i=-max_expand_size;i<=max_expand_size;i++)
+    //     for(int j=-max_expand_size;j<=max_expand_size;j++)
+    //         for(int k=-max_expand_size;k<=max_expand_size;k++)
+    //         {
+    //             if(i>0)
+    //             {
+    //                 cube.x_pos_int+=i;
+    //             }
+    //             else
+    //             {
+    //                 cube.x_neg_int+=i;
+    //             }
+                
+    //             if(i>0)
+    //             {
+    //                 cube.x_pos_int+=i;
+    //             }
+    //             else
+    //             {
+    //                 cube.x_neg_int+=i;
+    //             }
+    //         }
+}
+
+
 
 
 

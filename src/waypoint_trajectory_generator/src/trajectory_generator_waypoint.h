@@ -128,6 +128,7 @@ public:
     }
   }
 
+
 };
 
 
@@ -141,8 +142,11 @@ class FlightCorridor:public TrajectoryGeneratorWaypoint
 {
 public:
   vector<FlightCube> cubes;
+  // int max_expand_size;
 
   bool check_cube_safe(FlightCube cube);
+
+  FlightCube expand_cube(FlightCube cube);
 };
 
 
