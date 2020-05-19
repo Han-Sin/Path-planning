@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     _max_z_id = (int)(_z_size * _inv_resolution);
 
 
-    vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );
+    // vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );//注释则关闭飞机运动
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
 
     ros::Rate rate(200);

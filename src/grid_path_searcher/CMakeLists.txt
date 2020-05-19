@@ -6,7 +6,6 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     nav_msgs
     visualization_msgs
-    waypoint_trajectory_generator
     geometry_msgs 
 )
 

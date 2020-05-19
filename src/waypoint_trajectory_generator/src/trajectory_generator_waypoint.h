@@ -3,9 +3,15 @@
 
 #include <Eigen/Eigen>
 #include <vector>
+#include "GridNode.h"
+// #include <grid_path_searcher/node.h>
+
+class FlightCube;
+class FlightCorridor;
+using namespace std;
 
 class TrajectoryGeneratorWaypoint {
-    private:
+    public:
 		double _qp_cost;
 		Eigen::MatrixXd _Q,_M,_Ct;
 		Eigen::VectorXd _Px, _Py, _Pz;
@@ -61,5 +67,87 @@ class TrajectoryGeneratorWaypoint {
         Eigen::Vector3d coordRounding(const Eigen::Vector3d & coord);
 };
         
+
+
+
+class FlightCube
+{
+public:
+  GridNodePtr start_node;
+  GridNodePtr end_node;
+  //           ->x_pos
+  //           y_pos
+  double x_pos;
+  double x_neg;
+  double y_pos;
+  double y_neg;
+  double z_pos;
+  double z_neg;
+  int x_pos_int;
+  int x_neg_int;
+  int y_pos_int;
+  int y_neg_int;
+  int z_pos_int;
+  int z_neg_int;
+
+  FlightCube(GridNodePtr s_n,GridNodePtr e_n)
+  {
+    start_node=s_n;
+    end_node=e_n;
+    if(end_node->index[0]>start_node->index[0])//init x
+    {
+      x_pos_int=end_node->index[0]-start_node->index[0];
+      x_neg_int=0;
+    }
+    else
+    {
+      x_neg_int=start_node->index[0]-end_node->index[0];
+      x_pos_int=0;
+    }
+
+    if(end_node->index[1]>start_node->index[1])//init y
+    {
+      y_pos_int=end_node->index[1]-start_node->index[1];
+      y_neg_int=0;
+    }
+    else
+    {
+      y_neg_int=start_node->index[1]-end_node->index[1];
+      y_pos_int=0;
+    }
+
+    if(end_node->index[2]>start_node->index[2])//init z
+    {
+      z_pos_int=end_node->index[2]-start_node->index[2];
+      z_neg_int=0;
+    }
+    else
+    {
+      z_neg_int=start_node->index[2]-end_node->index[2];
+      z_pos_int=0;
+    }
+  }
+
+};
+
+
+
+
+
+
+
+
+class FlightCorridor:public TrajectoryGeneratorWaypoint
+{
+public:
+  vector<FlightCube> cubes;
+
+  bool check_cube_safe(FlightCube cube);
+};
+
+
+
+
+
 
 #endif

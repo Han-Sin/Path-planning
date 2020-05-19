@@ -94,7 +94,7 @@ Visualization Manager:
       Value: true
 #----------------------------------------------访问节点可视化----------------------------------------------
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/visited_nodes_vis
       Name: key_points
       Namespaces:
@@ -103,7 +103,7 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/visited_nodes_jps_vis
       Name: visited_jps
       Namespaces:
@@ -112,7 +112,7 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/visited_nodes_rrt_vis
       Name: visited_rrt
       Namespaces:
@@ -126,7 +126,7 @@ Visualization Manager:
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath_astar
       Namespaces:
-        demo_node/jps_path: true
+        demo_node/jps_path: false
       Queue Size: 100
       Value: true
 
@@ -135,22 +135,31 @@ Visualization Manager:
       Marker Topic: /demo_node/grid_path_vis_jps
       Name: gridPath_jps
       Namespaces:
-        demo_node/jps_path: true
+        demo_node/jps_path: false
+      Queue Size: 100
+      Value: true
+
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /demo_node/grid_path_vis_rrt
+      Name: gridPath_rrt
+      Namespaces:
+        demo_node/jps_path: false
       Queue Size: 100
       Value: true
 
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /demo_node/grid_path_vis_rrt
-      Name: gridPath_rrt
+      Marker Topic: /trajectory_generator_node/vis_corridor
+      Name: corridor
       Namespaces:
-        demo_node/jps_path: true
+        demo_node/jps_path: false
       Queue Size: 100
       Value: true
 #----------------------------------------------轨迹无人机可视化----------------------------------------------
 
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /drone_node/drone_pos
       Name: Drone_pos
       Namespaces:
@@ -160,7 +169,7 @@ Visualization Manager:
 
       #迭代后的轨迹
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_trajectory
       Name: Iterated_Path
       Namespaces:
@@ -170,7 +179,7 @@ Visualization Manager:
 
       #迭代前的轨迹
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_trajectory2
       Name: Raw_Path
       Namespaces:

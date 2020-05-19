@@ -37,9 +37,12 @@ using namespace Eigen;
     int _max_x_id, _max_y_id, _max_z_id;
 //
     TrajectoryGeneratorWaypoint * _trajGene     = new TrajectoryGeneratorWaypoint();
+    FlightCorridor* _corridor                    = new FlightCorridor();
+
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
-    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3, _wp_path_vis_pub,  _vel_pub,_acc_pub,_points_pub;
+    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3, _wp_path_vis_pub,  _vel_pub,_acc_pub,
+    _corridor_pub,_points_pub;
 
 // for planning
     int _poly_num1D;
@@ -60,6 +63,7 @@ using namespace Eigen;
     void rcvWaypointsCallBack2(const nav_msgs::Path & wp);
     nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
 
+    void visCorridor();
 
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
@@ -79,6 +83,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
         pt = cloud.points[idx];
         // set obstalces into grid map for path planning
         _trajGene->setObs(pt.x, pt.y, pt.z);
+        _corridor->setObs(pt.x, pt.y, pt.z);
         // ROS_INFO("setting %f",pt.x);
     }
 
@@ -98,6 +103,45 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         if(wp.poses[k].pose.position.z < 0.0)
             break;
     }
+
+    
+    int last_node_order=0;
+    int check_order=0;
+    int suc_flag=0;
+    while(true)
+    {
+        GridNodePtr start_node=new GridNode(_corridor->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
+        for(check_order=last_node_order+1;check_order<=wp_list.size();check_order++)
+        {
+            GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+            FlightCube temp_cube(start_node,end_node);
+            // ROS_INFO("current_cube safe check is %d",_corridor->check_cube_safe(temp_cube));
+            if(!_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size())
+            {
+                suc_flag=1;
+                break;
+            }
+            else if(!_corridor->check_cube_safe(temp_cube))
+                break;
+            else if(check_order==wp_list.size())
+            {
+                ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }
+        }
+        ROS_INFO("last_node_order=%d     check_order=%d",last_node_order,check_order);
+        GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
+        FlightCube temp_cube(start_node,end_node);
+        _corridor->cubes.push_back(temp_cube);
+        last_node_order=check_order-1;
+        if(suc_flag)
+            break;
+    }
+    visCorridor();
+    _corridor->cubes.clear();
+
+
+    
+
 
     //MatrixXd waypoints(wp_list.size() + 1, 3);
     //waypoints.row(0) = _startPos;
@@ -184,7 +228,7 @@ int main(int argc, char** argv)
     nh.param("planning/dev_order", _dev_order,  4 );
     nh.param("planning/min_order", _min_order,  3 );
     nh.param("vis/vis_traj_width", _vis_traj_width, 0.15);
-    nh.param("map/resolution",    _resolution,   0.05);
+    nh.param("map/resolution",    _resolution,   0.1);
     nh.param("map/x_size",        _x_size, 50.0);
     nh.param("map/y_size",        _y_size, 50.0);
     nh.param("map/z_size",        _z_size, 5.0 );
@@ -208,6 +252,7 @@ int main(int argc, char** argv)
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
+    _corridor_pub =    nh.advertise<visualization_msgs::Marker>("vis_corridor",1);
     //_points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
     _map_lower << - _x_size/2.0, - _y_size/2.0,     0.0;
     _map_upper << + _x_size/2.0, + _y_size/2.0, _z_size;  
@@ -216,6 +261,7 @@ int main(int argc, char** argv)
     _max_y_id = (int)(_y_size * _inv_resolution);
     _max_z_id = (int)(_z_size * _inv_resolution);
     _trajGene-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
+    _corridor-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     ros::Rate rate(100);
     bool status = ros::ok();
     while(status) 
@@ -477,4 +523,75 @@ nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
         waypoints.poses.push_back(pt);//维护waypoints
     }
     return waypoints;
+}
+
+
+void visCorridor()
+{   
+    visualization_msgs::Marker node_vis; 
+    node_vis.header.frame_id = "world";
+    node_vis.header.stamp = ros::Time::now();
+    
+
+    node_vis.color.a = 0.4;
+    node_vis.color.r = 0.0;
+    node_vis.color.g = 0.0;
+    node_vis.color.b = 1.0;
+
+    
+    // if(is_use_jps)
+    //     node_vis.ns = "demo_node/jps_path";
+    // else
+        node_vis.ns = "demo_node/astar_path";
+
+    node_vis.type = visualization_msgs::Marker::CUBE_LIST;
+    node_vis.action = visualization_msgs::Marker::ADD;
+    node_vis.id = 0;
+
+    node_vis.pose.orientation.x = 0.0;
+    node_vis.pose.orientation.y = 0.0;
+    node_vis.pose.orientation.z = 0.0;
+    node_vis.pose.orientation.w = 1.0;
+    
+
+    // if(is_use_jps){
+    //     node_vis.color.a = 1.0;
+    //     node_vis.color.r = 1.0;
+    //     node_vis.color.g = 0.0;
+    //     node_vis.color.b = 0.0;
+    // }
+    // else{
+    //     node_vis.color.a = 1.0;
+    //     node_vis.color.r = 1.0;
+    //     node_vis.color.g = 1.0;
+    //     node_vis.color.b = 1.0;
+    // }
+
+
+    node_vis.scale.x = _resolution;
+    node_vis.scale.y = _resolution;
+    node_vis.scale.z = _resolution;
+    geometry_msgs::Point pt;
+
+    ROS_INFO("_corridor  size=%d ",_corridor->cubes.size());
+    for(int i = 0; i < int(_corridor->cubes.size()); i++)
+    {
+        FlightCube cube=_corridor->cubes[i];
+        for (int i=cube.start_node->index[0]-cube.x_neg_int;i<=cube.start_node->index[0]+cube.x_pos_int;i++)
+            for (int j=cube.start_node->index[1]-cube.y_neg_int;j<=cube.start_node->index[1]+cube.y_pos_int;j++)
+                for (int k=cube.start_node->index[2]-cube.z_neg_int;k<=cube.start_node->index[2]+cube.z_pos_int;k++)
+                {
+                    // ROS_INFO("i=%d  j=%d   k=%d ",i,j,k);
+                    Vector3i index(i,j,k);
+                    Vector3d coord = _corridor->gridIndex2coord(index);
+                    pt.x = coord(0);
+                    pt.y = coord(1);
+                    pt.z = coord(2);
+                    node_vis.points.push_back(pt);
+                }
+    }
+
+
+    _corridor_pub.publish(node_vis);
+
 }

@@ -8,7 +8,7 @@
 #include <nav_msgs/Path.h>
 #include <utility>
 #include "backward.hpp"
-#include "node.h"
+#include "GridNode.h"
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>

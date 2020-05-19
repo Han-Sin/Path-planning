@@ -6,7 +6,7 @@
 
 <arg name="start_x" default=" 2.0"/>
 <arg name="start_y" default=" 0.0"/>
-<arg name="start_z" default=" 1.0"/>
+<arg name="start_z" default=" 0.0"/>
 
   <!-- Start rviz -->
   <node name="rviz" pkg="rviz" type="rviz" output="screen"

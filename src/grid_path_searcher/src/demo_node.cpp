@@ -129,7 +129,10 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     // auto simplified_points_path = _astar_path_finder->getSimplifiedPoints_by_lines();//化简后的关键点,直线查找
     nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
-    _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
+    
+    // _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
+    _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
+    
     // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
     // visVisitedNode(simplified_points_path);//可视化关键点
     // _simplified_waypoints_pub.publish(simplified_waypoints);

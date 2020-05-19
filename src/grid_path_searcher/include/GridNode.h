@@ -1,5 +1,5 @@
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef _GRIDNODE_H_
+#define _GRIDNODE_H_
 
 #include <iostream>
 #include <ros/ros.h>

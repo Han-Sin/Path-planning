@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation 
   std_msgs 
   geometry_msgs
+  grid_path_searcher
 )
 
 add_message_files(

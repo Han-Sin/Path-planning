@@ -241,7 +241,7 @@ void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coor
     int idx_y = int( (coord_y - gl_yl) * inv_resolution);
     int idx_z = int( (coord_z - gl_zl) * inv_resolution);
 
-    double expand_ratio=1;
+    double expand_ratio=0;
 
     double default_resolution=0.2;
     // ROS_INFO("resolution=%f",resolution);
@@ -360,6 +360,22 @@ int TrajectoryGeneratorWaypoint::safeCheck( MatrixXd polyCoeff, VectorXd time)
         }
     }
     return unsafe_segment;
+}
+
+
+
+
+bool FlightCorridor::check_cube_safe(FlightCube cube)
+{
+//   return isOccupied(1,1,1);
+  for (int i=cube.start_node->index[0]-cube.x_neg_int;i<=cube.start_node->index[0]+cube.x_pos_int;i++)
+    for (int j=cube.start_node->index[1]-cube.y_neg_int;j<=cube.start_node->index[1]+cube.y_pos_int;j++)
+      for (int k=cube.start_node->index[2]-cube.z_neg_int;k<=cube.start_node->index[2]+cube.z_pos_int;k++)
+      {
+        if (isOccupied(i,j,k))
+          return 0;
+      }
+  return 1;
 }
 
 
