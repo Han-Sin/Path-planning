@@ -111,12 +111,12 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     while(true)
     {
         GridNodePtr start_node=new GridNode(_corridor->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
-        for(check_order=last_node_order+1;check_order<=wp_list.size();check_order++)
+        for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
         {
             GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
             FlightCube temp_cube(start_node,end_node);
-            // ROS_INFO("current_cube safe check is %d",_corridor->check_cube_safe(temp_cube));
-            if(!_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size())
+            // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
+            if(_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
             {
                 suc_flag=1;
                 break;
@@ -128,8 +128,14 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
                 ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             }
         }
-        ROS_INFO("last_node_order=%d     check_order=%d",last_node_order,check_order);
-        GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
+        
+        ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
+
+        GridNodePtr end_node;
+        if(suc_flag)
+            end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+        else
+            end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
         FlightCube temp_cube(start_node,end_node);
         temp_cube=_corridor->expand_cube(temp_cube);
         _corridor->cubes.push_back(temp_cube);
