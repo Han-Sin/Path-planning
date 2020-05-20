@@ -108,6 +108,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     int last_node_order=0;
     int check_order=0;
     int suc_flag=0;
+    // while(false)
     while(true)
     {
         GridNodePtr start_node=new GridNode(_corridor->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
@@ -137,17 +138,19 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         else
             end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
         FlightCube temp_cube(start_node,end_node);
-        temp_cube=_corridor->expand_cube(temp_cube);
+        _corridor->expand_cube(temp_cube);
+        _corridor->update_attributes(temp_cube);
+        // temp_cube.Display();
         _corridor->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
             break;
     }
     ros::Time time_corr_end=ros::Time::now();
-    ROS_INFO("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
+    ROS_WARN("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
     visCorridor();
     ros::Time time_corr_vis=ros::Time::now();
-    ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
+    // ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
     _corridor->cubes.clear();
 
 

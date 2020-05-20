@@ -232,7 +232,8 @@ Vector3i AstarPathFinder::coord2gridIndex(const Vector3d & pt)
     idx <<  min( max( int( (pt(0) - gl_xl) * inv_resolution), 0), GLX_SIZE - 1),
             min( max( int( (pt(1) - gl_yl) * inv_resolution), 0), GLY_SIZE - 1),
             min( max( int( (pt(2) - gl_zl) * inv_resolution), 0), GLZ_SIZE - 1);
-
+    // ROS_INFO("%f   %f   %f   ->   %d   %d   %d",pt(0),pt(1),pt(2),idx[0],idx[1],idx[2]);
+    // ROS_INFO("gl_xl=%f   inv_resolution=%f    ",gl_xl,inv_resolution);
     return idx;
 }
 
@@ -512,6 +513,7 @@ vector<Vector3d> AstarPathFinder::getPath()
         // ROS_INFO("check2");
         gridPath.push_back(terminatePtr);
         // ROS_INFO("x=%f  y=%f  z=%f  ",terminatePtr->coord(0),terminatePtr->coord(1),terminatePtr->coord(2));
+        ROS_INFO("x=%d  y=%d  z=%d  ",terminatePtr->index(0),terminatePtr->index(1),terminatePtr->index(2));
         //if(terminatePtr->cameFrom!=NULL)
         //{
           //  path_length_sum+=(terminatePtr->coord-terminatePtr->cameFrom->coord).norm();
