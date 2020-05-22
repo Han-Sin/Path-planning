@@ -134,10 +134,6 @@ public:
 
 
 
-
-
-
-
 class FlightCorridor:public TrajectoryGeneratorWaypoint
 {
 public:
@@ -148,6 +144,70 @@ public:
 
   FlightCube expand_cube(FlightCube cube);
 };
+
+
+
+#include <ooqp/QpGenData.h>
+#include <ooqp/QpGenVars.h>
+#include <ooqp/QpGenResiduals.h>
+#include <ooqp/GondzioSolver.h>
+#include <ooqp/QpGenSparseMa27.h>
+
+
+class spatialTrajOptimizer 
+{
+    private:
+        double obj;
+        Eigen::MatrixXd PolyCoeff;
+        Eigen::VectorXd PolyTime;
+        MatrixXd M;
+        int traj_order;
+
+    public:
+        spatialTrajOptimizer(int order){
+          if(order ==6){
+            M << 1,   0,   0,   0,   0,  0,  0,
+					      -6,   6,   0,   0,   0,  0,  0,
+					      15, -30,  15,   0,   0,  0,  0,
+				        -20,  60, -60,  20,   0,  0,  0,
+				        15, -60,  90, -60,  15,  0,  0,
+				        -6,  30, -60,  60, -30,  6,  0,
+				        1,  -6,  15, -20,  15, -6,  1;}
+          else if(order==7){
+            M << 1,    0,    0,    0,    0,   0,   0,   0,
+				        -7,    7,    0,    0,    0,   0,   0,   0,
+				        21,  -42,   21,    0,    0,   0,   0,   0,
+				        -35,  105, -105,   35,    0,   0,   0,   0, 
+				        35, -140,  210, -140,   35,   0,   0,   0,
+				        -21,  105, -210,  210, -105,  21,   0,   0,
+				        7,  -42,  105, -140,  105, -42,   7,   0,
+				        -1,    7,  -21,   35,  -35,  21,  -7,   1;
+          }
+        }
+        ~spatialTrajOptimizer(){}
+
+        int bezierCurveGeneration( 
+        const FlightCorridor &corridor,
+        const int traj_order,
+        const double max_vel, 
+        const double max_acc);
+
+        Eigen::MatrixXd getPolyCoeff()
+        {
+            return PolyCoeff;
+        };
+
+        Eigen::VectorXd getPolyTime()
+        {
+            return PolyTime;
+        };
+
+        double getObjective()
+        {
+            return obj;
+        };
+};
+
 
 
 
