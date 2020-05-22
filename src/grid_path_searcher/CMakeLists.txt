@@ -39,7 +39,11 @@ add_executable( demo_node
 
 target_link_libraries(demo_node 
     ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES} 
+    ${PCL_LIBRARIES}
+    ooqpgensparse 
+    ooqpsparse 
+    ooqpgondzio 
+    ooqpbase blas ma27 gfortran f2c  
 )
 
 add_executable ( random_complex 

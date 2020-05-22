@@ -13,6 +13,11 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 #include <Eigen/Eigen>
+#include <ooqp/QpGenData.h>
+#include <ooqp/QpGenVars.h>
+#include <ooqp/QpGenResiduals.h>
+#include <ooqp/GondzioSolver.h>
+#include <ooqp/QpGenSparseMa27.h>
 using namespace std;
 //#include <waypoint_trajectory_generator/Trajectoy.h>
 //#include <waypoint_trajectory_generator/trajpoint.h>
