@@ -81,9 +81,9 @@
       <remap from="~joy"      to="/djiros/rc"/>
       
 
-      <!-- <param name="map/x_size"       value="$(arg map_size_x)"/>
+      <param name="map/x_size"       value="$(arg map_size_x)"/>
       <param name="map/y_size"       value="$(arg map_size_y)"/>
-      <param name="map/z_size"       value="$(arg map_size_z)"/> -->
+      <param name="map/z_size"       value="$(arg map_size_z)"/>
       <param name="planning/vel"       value="5"  />
       <param name="planning/acc"       value="5"  />
       <param name="planning/dev_order" value="4"    />

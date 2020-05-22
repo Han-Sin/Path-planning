@@ -90,6 +90,34 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
 }
 
 
+
+VectorXd corridor_time_generator()
+{ 
+
+    VectorXd time(_corridor->cubes.size());
+
+    // The time allocation is many relative timelines but not one common timeline
+    for(int i = 0; i < time.rows(); i++)
+    {
+        double distance = (_corridor->cubes[i].start_node->coord-_corridor->cubes[i].end_node->coord).norm();
+        // double distance = (Path.row(i+1) - Path.row(i)).norm();    // or .lpNorm<2>()
+        double x1 = _Vel * _Vel / (2 * _Acc); 
+        double x2 = distance - 2 * x1;
+        if(x2<=0){
+            time(i) = 2*sqrt(distance/_Acc);
+        }
+        else{
+            double t1 = _Vel / _Acc;
+            double t2 = x2 / _Vel;
+            time(i) = 2 * t1 + t2;;
+        }
+        //time(i) = distance/_Vel;
+        ROS_INFO("time i =%f",time(i));
+    }
+    return time;
+}
+
+
 void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 {   
     vector<Vector3d> wp_list;
@@ -140,12 +168,13 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         FlightCube temp_cube(start_node,end_node);
         _corridor->expand_cube(temp_cube);
         _corridor->update_attributes(temp_cube);
-        // temp_cube.Display();
+        temp_cube.Display();
         _corridor->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
             break;
     }
+    VectorXd corridor_time=corridor_time_generator();//生成时间
     ros::Time time_corr_end=ros::Time::now();
     ROS_WARN("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
     visCorridor();
@@ -526,6 +555,8 @@ VectorXd timeAllocation( MatrixXd Path)
     }
     return time;
 }
+
+
 nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
 {
     nav_msgs::Path waypoints;

@@ -449,7 +449,7 @@ FlightCube FlightCorridor::expand_cube(FlightCube &cube)
         
 
 
-        if(cube.z_neg_int-z_neg_origin<=max_expand_size&&cube.start_node->index[2]-cube.z_neg_int>=0)
+        if(cube.z_neg_int-z_neg_origin<=max_expand_size&&cube.start_node->index[2]-cube.z_neg_int-1>=0)
         {   
             cube.z_neg_int++;
             if(!check_cube_safe(cube))
@@ -495,6 +495,9 @@ void FlightCorridor::update_attributes(FlightCube &cube)
         cube.x_neg=cube.start_node->coord[0]-temp_coord[0]+0.5*resolution;
         cube.y_neg=cube.start_node->coord[1]-temp_coord[1]+0.5*resolution;
         cube.z_neg=cube.start_node->coord[2]-temp_coord[2]+0.5*resolution;
+        cube.borders[0]=cube.start_node->coord[0]-cube.x_neg;
+        cube.borders[2]=cube.start_node->coord[1]-cube.y_neg;
+        cube.borders[4]=cube.start_node->coord[2]-cube.z_neg;
     }
   
     {
@@ -504,6 +507,9 @@ void FlightCorridor::update_attributes(FlightCube &cube)
         cube.x_pos=temp_coord[0]-cube.start_node->coord[0]+0.5*resolution;
         cube.y_pos=temp_coord[1]-cube.start_node->coord[1]+0.5*resolution;
         cube.z_pos=temp_coord[2]-cube.start_node->coord[2]+0.5*resolution;
+        cube.borders[1]=cube.start_node->coord[0]+cube.x_pos;
+        cube.borders[3]=cube.start_node->coord[1]+cube.y_pos;
+        cube.borders[5]=cube.start_node->coord[2]+cube.z_pos;
     }
   
 

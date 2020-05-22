@@ -513,7 +513,7 @@ vector<Vector3d> AstarPathFinder::getPath()
         // ROS_INFO("check2");
         gridPath.push_back(terminatePtr);
         // ROS_INFO("x=%f  y=%f  z=%f  ",terminatePtr->coord(0),terminatePtr->coord(1),terminatePtr->coord(2));
-        ROS_INFO("x=%d  y=%d  z=%d  ",terminatePtr->index(0),terminatePtr->index(1),terminatePtr->index(2));
+        // ROS_INFO("x=%d  y=%d  z=%d  ",terminatePtr->index(0),terminatePtr->index(1),terminatePtr->index(2));
         //if(terminatePtr->cameFrom!=NULL)
         //{
           //  path_length_sum+=(terminatePtr->coord-terminatePtr->cameFrom->coord).norm();
