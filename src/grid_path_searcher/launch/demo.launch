@@ -4,7 +4,7 @@
 <arg name="map_size_y" default="10.0"/>
 <arg name="map_size_z" default=" 2.0"/>
 
-<arg name="start_x" default=" 2.0"/>
+<arg name="start_x" default=" 0.0"/>
 <arg name="start_y" default=" 0.0"/>
 <arg name="start_z" default=" 0.0"/>
 
@@ -80,6 +80,10 @@
       <remap from="~odom"      to="/msckf_vio/odometry"/>
       <remap from="~joy"      to="/djiros/rc"/>
       
+
+      <param name="map/x_size"       value="$(arg map_size_x)"/>
+      <param name="map/y_size"       value="$(arg map_size_y)"/>
+      <param name="map/z_size"       value="$(arg map_size_z)"/>
       <param name="planning/vel"       value="5"  />
       <param name="planning/acc"       value="5"  />
       <param name="planning/dev_order" value="4"    />

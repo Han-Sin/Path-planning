@@ -213,6 +213,7 @@ void TrajectoryGeneratorWaypoint::initGridMap(double _resolution, Vector3d globa
     gl_xl = global_xyz_l(0);
     gl_yl = global_xyz_l(1);
     gl_zl = global_xyz_l(2);
+    // ROS_INFO("gl_xl_init=%f",gl_xl);
 
     gl_xu = global_xyz_u(0);
     gl_yu = global_xyz_u(1);
@@ -291,7 +292,8 @@ Vector3i TrajectoryGeneratorWaypoint::coord2gridIndex(const Vector3d & pt)
     idx <<  min( max( int( (pt(0) - gl_xl) * inv_resolution), 0), GLX_SIZE - 1),
             min( max( int( (pt(1) - gl_yl) * inv_resolution), 0), GLY_SIZE - 1),
             min( max( int( (pt(2) - gl_zl) * inv_resolution), 0), GLZ_SIZE - 1);                  
-  
+    // ROS_INFO("%f   %f   %f   ->   %d   %d   %d",pt(0),pt(1),pt(2),idx[0],idx[1],idx[2]);
+    // ROS_INFO("gl_xl=%f   inv_resolution=%f    ",gl_xl,inv_resolution);
     return idx;
 }
 Eigen::Vector3d TrajectoryGeneratorWaypoint::coordRounding(const Eigen::Vector3d & coord)
@@ -379,7 +381,7 @@ bool FlightCorridor::check_cube_safe(FlightCube cube)
 }
 
 
-FlightCube FlightCorridor::expand_cube(FlightCube cube)
+FlightCube FlightCorridor::expand_cube(FlightCube &cube)
 {
     int max_expand_size=4;
     int x_pos_origin=cube.x_pos_int;
@@ -447,7 +449,7 @@ FlightCube FlightCorridor::expand_cube(FlightCube cube)
         
 
 
-        if(cube.z_neg_int-z_neg_origin<=max_expand_size)
+        if(cube.z_neg_int-z_neg_origin<=max_expand_size&&cube.start_node->index[2]-cube.z_neg_int-1>=0)
         {   
             cube.z_neg_int++;
             if(!check_cube_safe(cube))
@@ -484,8 +486,34 @@ FlightCube FlightCorridor::expand_cube(FlightCube cube)
     //         }
 }
 
+void FlightCorridor::update_attributes(FlightCube &cube)
+{
+    {
+        Vector3i temp_idx(cube.start_node->index[0]-cube.x_neg_int,cube.start_node->index[1]-cube.y_neg_int,
+        cube.start_node->index[2]-cube.z_neg_int);
+        Vector3d temp_coord=gridIndex2coord(temp_idx);
+        cube.x_neg=cube.start_node->coord[0]-temp_coord[0]+0.5*resolution;
+        cube.y_neg=cube.start_node->coord[1]-temp_coord[1]+0.5*resolution;
+        cube.z_neg=cube.start_node->coord[2]-temp_coord[2]+0.5*resolution;
+        cube.borders[0]=cube.start_node->coord[0]-cube.x_neg;
+        cube.borders[2]=cube.start_node->coord[1]-cube.y_neg;
+        cube.borders[4]=cube.start_node->coord[2]-cube.z_neg;
+    }
+  
+    {
+        Vector3i temp_idx(cube.start_node->index[0]+cube.x_pos_int,cube.start_node->index[1]+cube.y_pos_int,
+        cube.start_node->index[2]+cube.z_pos_int);
+        Vector3d temp_coord=gridIndex2coord(temp_idx);
+        cube.x_pos=temp_coord[0]-cube.start_node->coord[0]+0.5*resolution;
+        cube.y_pos=temp_coord[1]-cube.start_node->coord[1]+0.5*resolution;
+        cube.z_pos=temp_coord[2]-cube.start_node->coord[2]+0.5*resolution;
+        cube.borders[1]=cube.start_node->coord[0]+cube.x_pos;
+        cube.borders[3]=cube.start_node->coord[1]+cube.y_pos;
+        cube.borders[5]=cube.start_node->coord[2]+cube.z_pos;
+    }
+  
 
-
+}
 
 
 

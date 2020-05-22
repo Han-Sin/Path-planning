@@ -89,6 +89,10 @@ public:
   int y_neg_int;
   int z_pos_int;
   int z_neg_int;
+  int borders_int[6];//0 for xl,1 for xu,2 for yl,3 for yu,4 for zl,5 for z
+  double borders[6];
+
+
 
   FlightCube(GridNodePtr s_n,GridNodePtr e_n)
   {
@@ -128,6 +132,18 @@ public:
     }
   }
 
+  void Display()
+  {
+    ROS_INFO("start_node_x_int=%d   y_int=%d   z_int=%d     x_pos_int=%d  y_pos_int=%d  z_pos_int=%d  x_neg_int=%d  y_neg_int=%d  z_neg_int=%d",
+    start_node->index[0],start_node->index[1],start_node->index[2],x_pos_int,y_pos_int,z_pos_int,x_neg_int,y_neg_int,z_neg_int);
+
+    ROS_INFO("start_node_x=%f   y=%f  z=%f     x_pos=%f  y_pos=%f  z_pos=%f  x_neg=%f  y_neg=%f  z_neg=%f",
+    start_node->coord[0],start_node->coord[1],start_node->coord[2],x_pos,y_pos,z_pos,x_neg,y_neg,z_neg);
+
+
+    for (int i=0;i<6;i++)
+      ROS_INFO("border=%f",borders[i]);
+  }
 
 };
 
@@ -142,9 +158,11 @@ public:
 
   bool check_cube_safe(FlightCube cube);
 
-  FlightCube expand_cube(FlightCube cube);
-};
+  FlightCube expand_cube(FlightCube &cube);
 
+  void update_attributes(FlightCube &cube);
+
+};
 
 
 #include <ooqp/QpGenData.h>
