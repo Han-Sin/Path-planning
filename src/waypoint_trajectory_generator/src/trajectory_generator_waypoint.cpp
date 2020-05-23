@@ -898,21 +898,21 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             iclow[m_idx] = 1;
             clow[m_idx] = xl;
             icupp[m_idx] = 1;
-            icupp[m_idx] = xu;
+            cupp[m_idx] = xu;
             m_idx++;//x轴
         }
         for(int i=0;i<vars_number;i++){
             iclow[m_idx] = 1;
             clow[m_idx] = yl;
             icupp[m_idx] = 1;
-            icupp[m_idx] = yu;
+            cupp[m_idx] = yu;
             m_idx++;//y轴
         }
         for(int i=0;i<vars_number;i++){
             iclow[m_idx] = 1;
             clow[m_idx] = zl;
             icupp[m_idx] = 1;
-            icupp[m_idx] = zu;
+            cupp[m_idx] = zu;
             m_idx++;//z轴
         }        
        
