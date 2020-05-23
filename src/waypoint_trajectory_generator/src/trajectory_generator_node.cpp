@@ -44,7 +44,7 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
-    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3, _wp_path_vis_pub,  _vel_pub,_acc_pub,
+    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub,
     _corridor_pub,_points_pub;
 
 // for planning
@@ -56,7 +56,7 @@ using namespace Eigen;
 
 // declare
     void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag);
-    void visWayPointTraj_besier( VectorXd time,int flag);
+    void visWayPointTraj_besier( VectorXd time);
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
@@ -117,7 +117,7 @@ VectorXd corridor_time_generator()
         }
         // time(i)=1;
         //time(i) = distance/_Vel;
-        ROS_INFO("time i =%f",time(i));
+        // ROS_INFO("time i =%f",time(i));
     }
     return time;
 }
@@ -164,7 +164,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
             }
         }
         
-        ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
+        // ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
 
         GridNodePtr end_node;
         if(suc_flag)
@@ -174,7 +174,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         FlightCube temp_cube(start_node,end_node);
         _corridor->expand_cube(temp_cube);
         _corridor->update_attributes(temp_cube);
-        temp_cube.Display();
+        // temp_cube.Display();
         _corridor->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
@@ -187,13 +187,14 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     //ROS_INFO("000000!");
     ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
     int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
-    if(bezier_flag==0)
-    ROS_INFO("succ");
-    else
-    ROS_INFO("shit");    
-    ros::Time time_corr_vis=ros::Time::now();
-    visWayPointTraj_besier(corridor_time,0);
-    // ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
+    // if(bezier_flag==0)
+    //     ROS_INFO("bezier traj generation success!!!");
+    // else
+    //     ROS_INFO("bezier traj generation failed!!!");    
+    ros::Time time_bezier_end=ros::Time::now();
+    ROS_WARN("bezier traj generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
+
+    visWayPointTraj_besier(corridor_time);
     _corridor->cubes.clear();
 
 
@@ -308,6 +309,7 @@ int main(int argc, char** argv)
 
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
+    _wp_traj_besier_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier", 1);
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
@@ -428,7 +430,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 }
 
 
-void visWayPointTraj_besier( VectorXd time,int flag)
+void visWayPointTraj_besier( VectorXd time)
 {        
     visualization_msgs::Marker _traj_vis;
     _traj_vis.header.stamp       = ros::Time::now();
@@ -450,29 +452,12 @@ void visWayPointTraj_besier( VectorXd time,int flag)
     _traj_vis.pose.orientation.z = 0.0;
     _traj_vis.pose.orientation.w = 1.0;
 
-    if(flag==1)
-    {
+
     _traj_vis.color.a = 1.0;
     _traj_vis.color.r = 1.0;
     _traj_vis.color.g = 0.0;
     _traj_vis.color.b = 0.0;
-    }
 
-    else if(flag==0)
-    {
-    _traj_vis.color.a = 1.0;
-    _traj_vis.color.r = 1.0;
-    _traj_vis.color.g = 0.0;
-    _traj_vis.color.b = 0.0;
-    }
-
-    else if(flag==2)
-    {
-    _traj_vis.color.a = 1.0;
-    _traj_vis.color.r = 0.0;
-    _traj_vis.color.g = 1.0;
-    _traj_vis.color.b = 0.0;
-    }
 
     double traj_len = 0.0;
     int count = 0;
@@ -497,6 +482,9 @@ void visWayPointTraj_besier( VectorXd time,int flag)
             //     vel_pub.push_back(vel);
             //     acc_pub.push_back(acc);
             // }
+            Vector3d vel = Beziertraj.getPosFromBezier(t,i);
+            vel_pub.push_back(vel);
+
             pos = Beziertraj.getPosFromBezier(t,i);
             cur(0) = pt.x = pos(0);
             cur(1) = pt.y = pos(1);
@@ -507,19 +495,12 @@ void visWayPointTraj_besier( VectorXd time,int flag)
         }
     }
     ROS_INFO_STREAM("optimizer traj success, the length is "<<traj_len);
-    if(flag==0)
-    {
-        //迭代后的轨迹
-        _wp_traj_vis_pub.publish(_traj_vis);
-        // _vel_pub.publish(vector3d_to_waypoints(vel_pub));
-        // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
-    }
-    else if(flag==1)//未迭代的轨迹
-        _wp_traj_vis_pub2.publish(_traj_vis);
-    else if(flag==2){
-        _wp_traj_vis_pub.publish(_traj_vis); 
-    }
-    // _points_pub.publish(_traj);
+
+    //迭代后的轨迹
+    _wp_traj_besier_vis_pub.publish(_traj_vis);
+    _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+    // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+
 }
 
 

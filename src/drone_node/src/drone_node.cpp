@@ -33,7 +33,7 @@ int _max_x_id, _max_y_id, _max_z_id;
 bool _has_map   = false;
 
 // ros related
-ros::Subscriber vel_sub;
+ros::Subscriber vel_sub,pos_sub;
 ros::Publisher  drone_pos_pub;
 void visVisitedNode( vector<Vector3d> nodes );
 
@@ -75,6 +75,46 @@ void rcvVelCallBack(nav_msgs::Path vel)
 }
 
 
+
+void rcvPosCallBack(visualization_msgs::Marker pos)
+{
+        // vector<Vector3d> drone_pos;
+        // drone_pos.push_back(_start_pt);
+        // ROS_INFO("start_x=%f",drone_pos[0](0));
+        // visVisitedNode(drone_pos);
+
+        if(pos_init_flag)
+        {
+            current_pos=_start_pt;
+            pos_init_flag=0;
+        }
+
+        for (int i=0;i<pos.points.size();i++)
+        {
+            // double t_frequency=100;
+            // double t_gap=1/t_frequency;
+            // double v_x=vel.poses[i].pose.position.x;
+            // double v_y=vel.poses[i].pose.position.y;
+            // double v_z=vel.poses[i].pose.position.z;
+            // double v_mod=sqrt(v_x*v_x+v_y*v_y+v_z*v_z);
+
+            // current_pos[0]+=v_x*t_gap;
+            // current_pos[1]+=v_y*t_gap;
+            // current_pos[2]+=v_z*t_gap;
+            auto coord=pos.points[i];
+            current_pos[0]=coord.x;
+            current_pos[1]=coord.y;
+            current_pos[2]=coord.z;
+            
+            vector<Vector3d> drone_pos;
+            drone_pos.push_back(current_pos);
+            visVisitedNode(drone_pos);
+            ros::Rate rate(100);
+            rate.sleep();
+        }
+}
+
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "drone_node");
@@ -102,6 +142,7 @@ int main(int argc, char** argv)
 
 
     // vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );//注释则关闭飞机运动
+    pos_sub  = nh.subscribe( "/trajectory_generator_node/vis_trajectory_besier",       1, rcvPosCallBack );//注释则关闭飞机运动
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
 
     ros::Rate rate(200);

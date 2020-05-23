@@ -564,7 +564,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
 {   
     //ROS_INFO("zheli!!!!!!");
     segs = corridor.cubes.size();
-    ROS_INFO_STREAM("segs: "<<segs);
+    // ROS_INFO_STREAM("segs: "<<segs);
     vector<double>  time_intervals;
     for(int i=0;i<segs;i++)
         time_intervals.push_back(time(i));
@@ -595,9 +595,9 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     double b[equ_con_num];//start p(xyz),v(xyz),a(xyz),j(xyz)->end:p(xyz),v(xyz),a(xyz),j(xyz)->0,0,
     int my = equ_con_num;
     //ROS_INFO("zheli2!!");
-    ROS_INFO_STREAM("equ_con_num"<<equ_con_num);
-    ROS_INFO_STREAM("start"<<start_pos);
-    ROS_INFO_STREAM ("end"<<end_pos);
+    // ROS_INFO_STREAM("equ_con_num"<<equ_con_num);
+    // ROS_INFO_STREAM("start"<<start_pos);
+    // ROS_INFO_STREAM ("end"<<end_pos);
     for(int i = 0; i < equ_con_num; i ++ )//起点-》终点-》中间点
     { 
         double beq_i;//pvaj
@@ -1064,20 +1064,20 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     // Turn Off/On the print of the solving process
     // s->monitorSelf();
     int ierr = s->solve(prob, vars, resid);
-    ROS_INFO("ierr   %d",ierr);
+    // ROS_INFO("ierr   %d",ierr);
     if( ierr == 0 ) 
     {
         double d_var[nx];
         vars->x->copyIntoArray(d_var);
-        cout<<"d_var="<<d_var;
-        int temp_count=0;
-        for(int kk=0;kk<nx;kk++)
-        {
-            cout<<"d_var="<<d_var[kk];
-            temp_count++;
-            if(temp_count%10==0)
-                cout<<"    count="<<temp_count<<endl;
-        }
+        // cout<<"d_var="<<d_var;
+        // int temp_count=0;
+        // for(int kk=0;kk<nx;kk++)
+        // {
+        //     cout<<"d_var="<<d_var[kk];
+        //     temp_count++;
+        //     if(temp_count%10==0)
+        //         cout<<"    count="<<temp_count<<endl;
+        // }
 
         PolyCoeff = MatrixXd::Zero(segs, all_vars_number);
         PolyTime  = VectorXd::Zero(segs);
@@ -1098,24 +1098,9 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             for(int j = 0; j < all_vars_number; j++)
                 {
                     PolyCoeff(i , j) = d_var[j + var_shift];
-                    cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;;
+                    // cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;;
                 }
-            var_shift += all_vars_number;
-            //排序p0x1,p1x1...pnx1,p0y1...pny1...p0x2...
-            // Can't figure out how to dig out the objective value from ooqp solver, have to calculate it manually.
-            /*double scale = time[i];
-            if(min_order_l == min_order_u)
-                Q_o = MQM_u / (double)pow(scale, 2 * min_order_u - 3) * pow(corridor.scale_factor, 2 * min_order_u - 1);
-            else
-                Q_o = MQM_l / (double)pow(scale, 2 * min_order_l - 3) * pow(corridor.scale_factor, 2 * min_order_l - 1)
-                    + MQM_u / (double)pow(scale, 2 * min_order_u - 3) * pow(corridor.scale_factor, 2 * min_order_u - 1);
-        
-            for(int p = 0; p < 3; p ++ )
-            {   
-                VectorXd coeff = PolyCoeff.row(i).segment(p * s1d1CtrlP_num, s1d1CtrlP_num);
-
-                obj += (coeff.transpose() * Q_o * coeff)(0);
-            }*/           
+            var_shift += all_vars_number;     
         }   
     } 
     else if( ierr == 3)
