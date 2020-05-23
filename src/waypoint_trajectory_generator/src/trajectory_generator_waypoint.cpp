@@ -579,11 +579,13 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     char   ixlow[nx];
     for(int i=0;i<nx;i++){
         c[i] = 0.0;
-        xlow[nx] = 0.0;
-        ixlow[nx] = 0;
-        xupp[nx] = 0.0;
-        ixupp[nx] = 0;
+        xlow[i] = 0.0;
+        ixlow[i] = 0;
+        xupp[i] = 0.0;
+        ixupp[i] = 0;
     }
+    //c00x c01x ... c07x  c00y c01y...c07z  c00z c01z... c07z
+    //c10x
     //等式约束部分
     int equ_con_s_num = 3 * 4; // start state p v a j
     int equ_con_e_num = 3 * 4; // end state p v a j 
@@ -596,9 +598,9 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     ROS_INFO_STREAM("equ_con_num"<<equ_con_num);
     ROS_INFO_STREAM("start"<<start_pos);
     ROS_INFO_STREAM ("end"<<end_pos);
-    for(int i = 0; i < equ_con_num; i ++ )
+    for(int i = 0; i < equ_con_num; i ++ )//起点-》终点-》中间点
     { 
-        double beq_i;
+        double beq_i;//pvaj
         if(i < 3)                    beq_i = start_pos(i); 
         else if (i >= 3  && i < 6  ) beq_i = 0;//v 
         else if (i >= 6  && i < 9  ) beq_i = 0;//a
@@ -614,10 +616,10 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     int row_idx = 0;
     int nnzA  = (1 * 3 + 2 * 3 + 3 * 3 + 4 * 3) * 2 + (segs - 1) * (2 + 4 + 6 + 8) * 3;
 
+
     double dA[nnzA];
     int irowA[nnzA];
     int jcolA[nnzA];
-    ROS_INFO("zheline!!!!");
     //等式约束
     // stacking all equality constraints
 
@@ -874,7 +876,6 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             sub_shift += all_vars_number;
         }
     
-    ROS_INFO("1111111");
     //下面开启的是不等式约束
     int ieq_con_pos_num = 3*vars_number*segs; //飞行走廊的位置约束
     int high_order_con_num = 3*(vars_number-1)*segs+3*(vars_number-2)*segs;//速度 加速度约束 （不能太快）
@@ -994,15 +995,14 @@ int BezierTrajOptimizer::bezierCurveGeneration(
                 }
             }
     }
-    ROS_INFO("2222222222222");
-    //在开始定义优化对象之前，首先进行准备工作定义，包括M，QS矩阵
+    //在开始定义优化对象之前，首先进行准备工作定义，包括M，Q矩阵
     _Q = MatrixXd::Zero(vars_number * segs * 3, vars_number * segs * 3);
     _M = MatrixXd::Zero(vars_number * segs * 3, vars_number * segs * 3);
     for(int i=0; i<segs; i++){
         for(int j = 0; j < 3; j++){
             // calculate Matrix Q
             _Q.block(i*all_vars_number+j*vars_number, i*all_vars_number+j*vars_number, vars_number, vars_number) = getQ(vars_number, time_intervals,i);
-            // calculate Matrix M
+            // calculate Matrix M   
             _M.block(i*all_vars_number+j*vars_number, i*all_vars_number+j*vars_number, vars_number, vars_number) = getM(vars_number, time_intervals, i);
         }
     }
@@ -1041,7 +1041,6 @@ int BezierTrajOptimizer::bezierCurveGeneration(
         sub_shift += all_vars_number;
     }
     // 下面开始OOQP库的求解
-    ROS_INFO("333333333333333");
     //my=0;
     //nnzA=0;
     QpGenSparseMa27 * qp 
@@ -1064,9 +1063,8 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     
     // Turn Off/On the print of the solving process
     // s->monitorSelf();
-    ROS_INFO("???");
     int ierr = s->solve(prob, vars, resid);
-    ROS_INFO("afsaf");
+    ROS_INFO("ierr   %d",ierr);
     if( ierr == 0 ) 
     {
         double d_var[nx];

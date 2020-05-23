@@ -185,10 +185,10 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     //ROS_INFO("000000!");
     ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
     int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
-    if(bezier_flag==1)
-    ROS_INFO("哇靠，成功！");
+    if(bezier_flag==0)
+    ROS_INFO("succ");
     else
-    ROS_INFO("吃屎了！");    
+    ROS_INFO("shit");    
     ros::Time time_corr_vis=ros::Time::now();
     // ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
     _corridor->cubes.clear();
