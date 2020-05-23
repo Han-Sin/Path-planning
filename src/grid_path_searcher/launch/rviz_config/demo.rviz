@@ -169,7 +169,7 @@ Visualization Manager:
 
       #迭代后的轨迹
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory
       Name: Iterated_Path
       Namespaces:

@@ -1048,7 +1048,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     cout<<"irowQ: "<<irowQ[nnzQ-1]<<"jcolQ: "<<jcolQ[nnzQ-1];
     cout<<"nx: "<<nx<<" my: "<<my<<" mz: "<<mz<<" nnzQ: "<<nnzQ<<" nnzA: "<<nnzA<<" nnzC: "<<nnzC<<" size: "<<M_QM.cols()<<" "<<M_QM.rows();
     for(int i=0;i<nnzQ;i++){
-        cout<<dQ[i]<<endl;
+        // cout<<dQ[i]<<endl;
     }
     QpGenData * prob = (QpGenData * ) qp->copyDataFromSparseTriple(
         c,      irowQ,  nnzQ,   jcolQ,  dQ,
@@ -1069,6 +1069,15 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     {
         double d_var[nx];
         vars->x->copyIntoArray(d_var);
+        cout<<"d_var="<<d_var;
+        int temp_count=0;
+        for(int kk=0;kk<nx;kk++)
+        {
+            cout<<"d_var="<<d_var[kk];
+            temp_count++;
+            if(temp_count%10==0)
+                cout<<"    count="<<temp_count<<endl;
+        }
 
         PolyCoeff = MatrixXd::Zero(segs, all_vars_number);
         PolyTime  = VectorXd::Zero(segs);
@@ -1086,8 +1095,11 @@ int BezierTrajOptimizer::bezierCurveGeneration(
         {   
             PolyTime(i) = time[i];
 
-            for(int j = 0; j < vars_number; j++)
-                PolyCoeff(i , j) = d_var[j + var_shift];
+            for(int j = 0; j < all_vars_number; j++)
+                {
+                    PolyCoeff(i , j) = d_var[j + var_shift];
+                    cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;;
+                }
             var_shift += all_vars_number;
             //排序p0x1,p1x1...pnx1,p0y1...pny1...p0x2...
             // Can't figure out how to dig out the objective value from ooqp solver, have to calculate it manually.

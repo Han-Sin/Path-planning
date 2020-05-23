@@ -176,8 +176,6 @@ public:
 
 
 
-
-
 class BezierTrajOptimizer 
 {
     private:
@@ -259,9 +257,12 @@ class BezierTrajOptimizer
         inline Eigen::Vector3d getPosFromBezier(const double & t_now, const int & seg_now ){
 		      Eigen::Vector3d ret = Eigen::VectorXd::Zero(3);
           double T = PolyTime(seg_now);
+          // T=1;
+          // cout<<PolyCoeff;
 		      for(int i = 0; i < 3; i++)
 		        for(int j = 0; j < traj_order+1; j++)
-		          ret(i) += C_[j] * PolyCoeff(seg_now, i * (traj_order) + j) * pow(t_now/T, j) * pow((1 - t_now/T), (traj_order - j) ); 
+		          ret(i) += C_[j] * PolyCoeff(seg_now, i * (traj_order+1) + j) * pow(t_now/T, j) * pow((1 - t_now/T), (traj_order - j) ); 
+              // ROS_INFO("ret=%f  %f  %f",ret(0),ret(1),ret(2));
 		      return ret;  
 		    };
 

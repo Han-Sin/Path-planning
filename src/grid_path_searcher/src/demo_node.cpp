@@ -172,7 +172,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     }
 #endif
 
-#define _use_rrt 1
+#define _use_rrt 0
 #if _use_rrt
     {
         _rrt_path_finder->RRTSearch(start_pt,target_pt);
