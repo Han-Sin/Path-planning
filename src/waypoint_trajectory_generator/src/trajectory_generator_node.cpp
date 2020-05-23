@@ -29,7 +29,10 @@ using namespace Eigen;
 // Param from launch file
     double _vis_traj_width;
     double _Vel, _Acc;
-    int    _dev_order, _min_order;    
+    int    _dev_order, _min_order;
+    Vector3d  Start_point;
+    Vector3d  End_point;
+    BezierTrajOptimizer Beziertraj(7);     
 // Set the obstacle map
     double _resolution, _inv_resolution;
     double _x_size, _y_size, _z_size;
@@ -131,7 +134,8 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         if(wp.poses[k].pose.position.z < 0.0)
             break;
     }
-
+    Start_point = wp_list[0];
+    End_point = wp_list[wp_list.size()-1];
     ros::Time time_corr_start=ros::Time::now();
     int last_node_order=0;
     int check_order=0;
@@ -178,6 +182,13 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     ros::Time time_corr_end=ros::Time::now();
     ROS_WARN("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
     visCorridor();
+    //ROS_INFO("000000!");
+    ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
+    if(bezier_flag==1)
+    ROS_INFO("哇靠，成功！");
+    else
+    ROS_INFO("吃屎了！");    
     ros::Time time_corr_vis=ros::Time::now();
     // ROS_INFO("corridor vis success! Time cost is %f  ms",(time_corr_vis-time_corr_end).toSec()*1000);
     _corridor->cubes.clear();
@@ -307,6 +318,7 @@ int main(int argc, char** argv)
     _max_z_id = (int)(_z_size * _inv_resolution);
     _trajGene-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     _corridor-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
+    
     ros::Rate rate(100);
     bool status = ros::ok();
     while(status) 
@@ -642,3 +654,8 @@ void visCorridor()
     _corridor_pub.publish(node_vis);
 
 }
+
+
+
+
+

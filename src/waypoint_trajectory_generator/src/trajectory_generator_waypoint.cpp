@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
+#include <math.h>
 using namespace std;    
 using namespace Eigen;
 
@@ -511,8 +511,6 @@ void FlightCorridor::update_attributes(FlightCube &cube)
         cube.borders[3]=cube.start_node->coord[1]+cube.y_pos;
         cube.borders[5]=cube.start_node->coord[2]+cube.z_pos;
     }
-  
-
 }
 
 
@@ -521,3 +519,602 @@ void FlightCorridor::update_attributes(FlightCube &cube)
 
 
 
+//for bezier generate
+MatrixXd BezierTrajOptimizer::getQ(const int vars_number, const vector<double> Time, const int seg_index){
+    // calculate Matrix Q_k of the seg_index-th segment
+    MatrixXd Q_k = MatrixXd::Zero(vars_number, vars_number);
+    int d_order = (traj_order+1)/2;//for us, is 4 here 
+    for (int i = 0; i < vars_number; i++)
+    {
+        for (int j = 0; j < vars_number; j++)
+        {
+            if (i >= vars_number - d_order && j >= vars_number - d_order)
+            {
+                Q_k(i, j) = (factorial(i) / factorial(i - d_order)) * ((factorial(j) / factorial(j - d_order))) /
+                            (i + j - 2 * d_order + 1) * pow(Time[seg_index], (i + j - 2 * d_order + 1)); // Q of one segment
+            }
+        }
+    }
+   //get Q for calculation of cost
+    return Q_k;
+}
+Eigen::MatrixXd BezierTrajOptimizer::getM(const int vars_number, const vector<double> Time, const int seg_index){
+    MatrixXd M_k = MatrixXd::Zero(vars_number, vars_number);
+    VectorXd t_pow = VectorXd::Zero(vars_number);
+    for(int i = 0; i < vars_number; i++)
+    {
+        t_pow(i) = pow(Time[seg_index],i);
+    }
+    M_k = M;
+    for(int i=0;i<vars_number;i++){
+        M_k.row(i) = M_k.row(i)/t_pow(i);    
+    }
+    return M_k;
+}    
+
+
+int BezierTrajOptimizer::bezierCurveGeneration( 
+    FlightCorridor corridor,
+    const double max_vel, 
+    const double max_acc,
+    Vector3d start_pos,
+    Vector3d end_pos,
+    VectorXd time
+    )
+{   
+    //ROS_INFO("zheli!!!!!!");
+    segs = corridor.cubes.size();
+    ROS_INFO_STREAM("segs: "<<segs);
+    vector<double>  time_intervals;
+    for(int i=0;i<segs;i++)
+        time_intervals.push_back(time(i));
+    //time_intervals.push_back(1);
+    int vars_number = traj_order+1;
+    int all_vars_number = 3*vars_number;//XYZ
+    int nx = segs*3*vars_number;//需要优化的系数的个数ca
+    double c[nx];
+    double  xupp[nx];    
+    char   ixupp[nx];
+    double  xlow[nx];
+    char   ixlow[nx];
+    for(int i=0;i<nx;i++){
+        c[i] = 0.0;
+        xlow[nx] = 0.0;
+        ixlow[nx] = 0;
+        xupp[nx] = 0.0;
+        ixupp[nx] = 0;
+    }
+    //等式约束部分
+    int equ_con_s_num = 3 * 4; // start state p v a j
+    int equ_con_e_num = 3 * 4; // end state p v a j 
+    int equ_con_continuity_num = 3 * 4 * (segs - 1);
+    int equ_con_num = equ_con_s_num + equ_con_e_num + equ_con_continuity_num;  // p, v, a j in x, y, z axis in each segment's joint position
+    //int ieq_con_pos_num = 0; // all control points within the polytopes, each face assigned a linear constraint
+    double b[equ_con_num];//start p(xyz),v(xyz),a(xyz),j(xyz)->end:p(xyz),v(xyz),a(xyz),j(xyz)->0,0,
+    int my = equ_con_num;
+    //ROS_INFO("zheli2!!");
+    ROS_INFO_STREAM("equ_con_num"<<equ_con_num);
+    ROS_INFO_STREAM("start"<<start_pos);
+    ROS_INFO_STREAM ("end"<<end_pos);
+    for(int i = 0; i < equ_con_num; i ++ )
+    { 
+        double beq_i;
+        if(i < 3)                    beq_i = start_pos(i); 
+        else if (i >= 3  && i < 6  ) beq_i = 0;//v 
+        else if (i >= 6  && i < 9  ) beq_i = 0;//a
+        else if (i >= 9  && i < 12 ) beq_i = 0;//j
+        else if (i >= 12 && i < 15 ) beq_i = end_pos(i-12);//pend_pos(i)
+        else if (i >= 15 && i < 18 ) beq_i = 0;//end:v
+        else if (i >= 18 && i < 21 ) beq_i = 0;//end:a
+        else if (i >= 21 && i < 24 ) beq_i = 0;//end:j
+        else beq_i = 0.0;//连续性约束
+        b[i] = beq_i;
+    }
+    int nn_idx  = 0;
+    int row_idx = 0;
+    int nnzA  = (1 * 3 + 2 * 3 + 3 * 3 + 4 * 3) * 2 + (segs - 1) * (2 + 4 + 6 + 8) * 3;
+
+    double dA[nnzA];
+    int irowA[nnzA];
+    int jcolA[nnzA];
+    ROS_INFO("zheline!!!!");
+    //等式约束
+    // stacking all equality constraints
+
+    //   Start position 
+        // position :
+        for(int i = 0; i < 3; i++)
+        {  // loop for x, y, z       
+            dA[nn_idx] = 1.0;
+            irowA[nn_idx] = row_idx;
+            jcolA[nn_idx] = i * vars_number;
+            row_idx ++;
+            nn_idx  ++;
+        }
+        // velocity :
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   = - 1.0 * traj_order/time_intervals[0];
+            dA[nn_idx+1] =   1.0 * traj_order/time_intervals[0];
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+
+            jcolA[nn_idx]   = i * vars_number;
+            jcolA[nn_idx+1] = i * vars_number + 1;
+
+            row_idx ++;
+            nn_idx += 2;
+        }
+        // acceleration : 
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1)/pow(time_intervals[0],2);
+            dA[nn_idx+1] = - 2.0 * traj_order * (traj_order - 1)/pow(time_intervals[0],2);
+            dA[nn_idx+2] =   1.0 * traj_order * (traj_order - 1)/pow(time_intervals[0],2);
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+            irowA[nn_idx+2] = row_idx;
+
+            jcolA[nn_idx]   = i * vars_number;
+            jcolA[nn_idx+1] = i * vars_number + 1;
+            jcolA[nn_idx+2] = i * vars_number + 2;
+
+            row_idx ++;
+            nn_idx += 3;
+        }
+        //jerk
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
+            dA[nn_idx+1] =  -1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
+            dA[nn_idx+2] =  -1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
+            dA[nn_idx+3] =   1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+            irowA[nn_idx+2] = row_idx;
+            irowA[nn_idx+3] = row_idx;
+
+            jcolA[nn_idx]   = i * vars_number;
+            jcolA[nn_idx+1] = i * vars_number + 1;
+            jcolA[nn_idx+2] = i * vars_number + 2;
+            jcolA[nn_idx+3] = i * vars_number + 3;
+
+            row_idx ++;
+            nn_idx += 4;
+        }
+
+
+     
+
+    //   End position 
+     
+        // position :
+        for(int i = 0; i < 3; i++)
+        {   
+            dA[nn_idx]  = 1.0;
+            irowA[nn_idx] = row_idx;
+            jcolA[nn_idx] = nx - 1 - (2 - i) * vars_number;
+
+            row_idx ++;
+            nn_idx  ++;
+        }
+        // velocity :
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   = - 1.0 * traj_order/pow(time_intervals[segs-1],1);
+            dA[nn_idx+1] =   1.0 * traj_order/pow(time_intervals[segs-1],1);
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+
+            jcolA[nn_idx]   = nx - 1 - (2 - i) * vars_number - 1;
+            jcolA[nn_idx+1] = nx - 1 - (2 - i) * vars_number;
+
+            row_idx ++;
+            nn_idx += 2;
+        }
+        // acceleration : 
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1) / pow(time_intervals[segs-1],2);
+            dA[nn_idx+1] = - 2.0 * traj_order * (traj_order - 1) / pow(time_intervals[segs-1],2);
+            dA[nn_idx+2] =   1.0 * traj_order * (traj_order - 1) / pow(time_intervals[segs-1],2);
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+            irowA[nn_idx+2] = row_idx;
+
+            jcolA[nn_idx]   = nx - 1 - (2 - i) * vars_number - 2;
+            jcolA[nn_idx+1] = nx - 1 - (2 - i) * vars_number - 1;
+            jcolA[nn_idx+2] = nx - 1 - (2 - i) * vars_number ;
+
+            row_idx ++;
+            nn_idx += 3;
+        }
+        //jerk
+        for(int i = 0; i < 3; i++)
+        { 
+            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
+            dA[nn_idx+1] = - 1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
+            dA[nn_idx+2] = - 1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
+            dA[nn_idx+3] =   1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
+            
+            irowA[nn_idx]   = row_idx;
+            irowA[nn_idx+1] = row_idx;
+            irowA[nn_idx+2] = row_idx;
+            irowA[nn_idx+3] = row_idx;
+
+            jcolA[nn_idx]   = nx - 1 - (2 - i) * vars_number - 3;
+            jcolA[nn_idx+1] = nx - 1 - (2 - i) * vars_number - 2;
+            jcolA[nn_idx+2] = nx - 1 - (2 - i) * vars_number - 1;
+            jcolA[nn_idx+3] = nx - 1 - (2 - i) * vars_number ;
+
+
+            row_idx ++;
+            nn_idx += 4;
+        }
+        
+    
+
+    // 关节点处的 P V A J
+    
+        int sub_shift = 0;
+        double val0, val1;
+        for(int k = 0; k < (segs - 1); k ++ )
+        {   
+            double scale_k = time_intervals[k];
+            double scale_n = time_intervals[k+1];
+            // position :
+            val0 = scale_k;
+            val1 = scale_n;
+            for(int i = 0; i < 3; i++)
+            {
+                dA[nn_idx]   =  1.0;
+                dA[nn_idx+1] = -1.0;
+                
+                irowA[nn_idx]   = row_idx;
+                irowA[nn_idx+1] = row_idx;
+                jcolA[nn_idx]   = sub_shift + (i+1) * vars_number - 1;//前一段的轨迹的末尾
+                jcolA[nn_idx+1] = sub_shift + all_vars_number + i * vars_number;//后一段的轨迹的起点
+                row_idx ++;
+                nn_idx += 2;
+            }
+            
+            //velocity
+
+            for(int i = 0; i < 3; i++)
+            {  
+                dA[nn_idx]   = -1.0/val0;
+                dA[nn_idx+1] =  1.0/val0;
+                dA[nn_idx+2] =  1.0/val1;
+                dA[nn_idx+3] = -1.0/val1;
+                
+                irowA[nn_idx]   = row_idx;
+                irowA[nn_idx+1] = row_idx;
+                irowA[nn_idx+2] = row_idx;
+                irowA[nn_idx+3] = row_idx;
+
+                jcolA[nn_idx]   = sub_shift + (i+1) * vars_number - 2;    
+                jcolA[nn_idx+1] = sub_shift + (i+1) * vars_number - 1;    
+                jcolA[nn_idx+2] = sub_shift + all_vars_number + i * vars_number;
+                jcolA[nn_idx+3] = sub_shift + all_vars_number + i * vars_number + 1;
+                
+                row_idx ++;
+                nn_idx += 4;
+            }
+            // acceleration :
+            
+            for(int i = 0; i < 3; i++)
+            {  
+                dA[nn_idx]   =  1.0  /pow(val0,2);
+                dA[nn_idx+1] = -2.0  /pow(val0,2);
+                dA[nn_idx+2] =  1.0  /pow(val0,2);
+                dA[nn_idx+3] = -1.0  /pow(val1,2);
+                dA[nn_idx+4] =  2.0  /pow(val1,2);
+                dA[nn_idx+5] = -1.0  /pow(val1,2);
+                
+                irowA[nn_idx]   = row_idx;
+                irowA[nn_idx+1] = row_idx;
+                irowA[nn_idx+2] = row_idx;
+                irowA[nn_idx+3] = row_idx;
+                irowA[nn_idx+4] = row_idx;
+                irowA[nn_idx+5] = row_idx;
+
+                jcolA[nn_idx]   = sub_shift + (i+1) * vars_number - 3;    
+                jcolA[nn_idx+1] = sub_shift + (i+1) * vars_number - 2;    
+                jcolA[nn_idx+2] = sub_shift + (i+1) * vars_number - 1;    
+                jcolA[nn_idx+3] = sub_shift + all_vars_number + i * vars_number;    
+                jcolA[nn_idx+4] = sub_shift + all_vars_number + i * vars_number + 1;
+                jcolA[nn_idx+5] = sub_shift + all_vars_number + i * vars_number + 2;
+                row_idx ++;
+                nn_idx += 6;
+            }
+            //jerk:
+
+            for(int i = 0; i < 3; i++)
+            {  
+                dA[nn_idx]   =  1.0  /pow(val0,3);
+                dA[nn_idx+1] = -1.0  /pow(val0,3);
+                dA[nn_idx+2] = -1.0  /pow(val0,3);
+                dA[nn_idx+3] =  1.0  /pow(val0,3);
+                
+                dA[nn_idx+4] = -1.0  /pow(val1,3);
+                dA[nn_idx+5] =  1.0  /pow(val1,3);
+                dA[nn_idx+6] =  1.0  /pow(val1,3);
+                dA[nn_idx+7] = -1.0  /pow(val1,3);
+                
+                
+                irowA[nn_idx]   = row_idx;
+                irowA[nn_idx+1] = row_idx;
+                irowA[nn_idx+2] = row_idx;
+                irowA[nn_idx+3] = row_idx;
+                irowA[nn_idx+4] = row_idx;
+                irowA[nn_idx+5] = row_idx;
+                irowA[nn_idx+6] = row_idx;
+                irowA[nn_idx+7] = row_idx;
+                
+
+                jcolA[nn_idx]   = sub_shift + (i+1) * vars_number - 4;    
+                jcolA[nn_idx+1] = sub_shift + (i+1) * vars_number - 3;    
+                jcolA[nn_idx+2] = sub_shift + (i+1) * vars_number - 2;
+                jcolA[nn_idx+3] = sub_shift + (i+1) * vars_number - 1;
+                jcolA[nn_idx+4] = sub_shift + all_vars_number + i * vars_number;    
+                jcolA[nn_idx+5] = sub_shift + all_vars_number + i * vars_number + 1;
+                jcolA[nn_idx+6] = sub_shift + all_vars_number + i * vars_number + 2;
+                jcolA[nn_idx+7] = sub_shift + all_vars_number + i * vars_number + 3;
+                
+                row_idx ++;
+                nn_idx += 8;
+            }
+
+
+            sub_shift += all_vars_number;
+        }
+    
+    ROS_INFO("1111111");
+    //下面开启的是不等式约束
+    int ieq_con_pos_num = 3*vars_number*segs; //飞行走廊的位置约束
+    int high_order_con_num = 3*(vars_number-1)*segs+3*(vars_number-2)*segs;//速度 加速度约束 （不能太快）
+    const int mz  = ieq_con_pos_num + high_order_con_num;//不等式约束总个数
+    char iclow[mz];
+    char icupp[mz];
+    double clow[mz];
+    double cupp[mz];
+
+    int m_idx = 0;
+    // stacking all bnounds
+    for(int k = 0; k < segs; k++) 
+    {   //0 for xl,1 for xu,2 for yl,3 for yu,4 for zl,5 for z
+        double xl = corridor.cubes[k].borders[0];
+        double xu = corridor.cubes[k].borders[1];
+        double yl = corridor.cubes[k].borders[2];
+        double yu = corridor.cubes[k].borders[3];
+        double zl = corridor.cubes[k].borders[4];
+        double zu = corridor.cubes[k].borders[5];
+        for(int i=0;i<vars_number;i++){
+            iclow[m_idx] = 1;
+            clow[m_idx] = xl;
+            icupp[m_idx] = 1;
+            icupp[m_idx] = xu;
+            m_idx++;//x轴
+        }
+        for(int i=0;i<vars_number;i++){
+            iclow[m_idx] = 1;
+            clow[m_idx] = yl;
+            icupp[m_idx] = 1;
+            icupp[m_idx] = yu;
+            m_idx++;//y轴
+        }
+        for(int i=0;i<vars_number;i++){
+            iclow[m_idx] = 1;
+            clow[m_idx] = zl;
+            icupp[m_idx] = 1;
+            icupp[m_idx] = zu;
+            m_idx++;//z轴
+        }        
+       
+    }
+
+    // 速度约束
+    for(int i = 0; i < 3*(vars_number-1)*segs; i++)
+    {
+        iclow[m_idx] = 1;
+        icupp[m_idx] = 1;
+        clow[m_idx]  = -max_vel;
+        cupp[m_idx]  = max_vel;
+        m_idx++;
+    }
+     //加速度约束
+    for(int i=0;i<3*(vars_number-2)*segs;i++){
+        iclow[m_idx]=1;
+        icupp[m_idx]=1;
+        clow[m_idx]=-max_acc;
+        cupp[m_idx]= max_acc;
+        m_idx++;
+    }
+   
+    //int nnzC = 3 * ieq_con_pos_num; //非0元素个数
+    int nnzC =(vars_number*3)* segs + segs * (vars_number-1)*2 *3 + segs * (vars_number-2)*3 *3;//P+V+A
+    
+    int irowC[nnzC];
+    int jcolC[nnzC];
+    double dC[nnzC];
+    nn_idx  = 0;
+    row_idx = 0;
+    //position
+    for(int k = 0; k < segs*all_vars_number; k++)
+    {
+        dC[nn_idx] = 1;
+        irowC[nn_idx]=row_idx;
+        jcolC[nn_idx]= k;
+        row_idx ++;
+        nn_idx ++;
+    }
+    //velocity
+    for(int k = 0; k < segs ; k ++ )
+    {   
+            for(int i = 0; i < 3; i++)
+            {  // for x, y, z loop
+                for(int j = 0;j < traj_order;j++){
+                    dC[nn_idx]     = -1.0 * traj_order/time_intervals[k];
+                    dC[nn_idx + 1] =  1.0 * traj_order/time_intervals[k];
+                    irowC[nn_idx]     = row_idx;
+                    irowC[nn_idx + 1] = row_idx;
+                    jcolC[nn_idx]     = k * all_vars_number + i * vars_number+j;    
+                    jcolC[nn_idx + 1] = k * all_vars_number + i * vars_number + j + 1;    
+                    row_idx ++;
+                    nn_idx += 2;
+                }
+            }
+    }
+    for(int k = 0; k < segs ; k ++ )
+    {   
+        double scale_k = pow(time_intervals[k],2);
+        for(int i = 0; i < 3; i++)
+        { 
+            for(int j = 0; j < traj_order - 1; j++)
+                {    
+                    dC[nn_idx]     =  1.0 * traj_order * (traj_order - 1) / scale_k;
+                    dC[nn_idx + 1] = -2.0 * traj_order * (traj_order - 1) / scale_k;
+                    dC[nn_idx + 2] =  1.0 * traj_order * (traj_order - 1) / scale_k;
+
+                    irowC[nn_idx]     = row_idx;
+                    irowC[nn_idx + 1] = row_idx;
+                    irowC[nn_idx + 2] = row_idx;
+
+                    jcolC[nn_idx]     = k * all_vars_number + i * vars_number + j;    
+                    jcolC[nn_idx + 1] = k * all_vars_number + i * vars_number + j + 1;    
+                    jcolC[nn_idx + 2] = k * all_vars_number + i * vars_number + j + 2;    
+                    
+                    row_idx ++;
+                    nn_idx += 3;
+                }
+            }
+    }
+    ROS_INFO("2222222222222");
+    //在开始定义优化对象之前，首先进行准备工作定义，包括M，QS矩阵
+    _Q = MatrixXd::Zero(vars_number * segs * 3, vars_number * segs * 3);
+    _M = MatrixXd::Zero(vars_number * segs * 3, vars_number * segs * 3);
+    for(int i=0; i<segs; i++){
+        for(int j = 0; j < 3; j++){
+            // calculate Matrix Q
+            _Q.block(i*all_vars_number+j*vars_number, i*all_vars_number+j*vars_number, vars_number, vars_number) = getQ(vars_number, time_intervals,i);
+            // calculate Matrix M
+            _M.block(i*all_vars_number+j*vars_number, i*all_vars_number+j*vars_number, vars_number, vars_number) = getM(vars_number, time_intervals, i);
+        }
+    }
+   
+    MatrixXd M_QM;
+    M_QM = MatrixXd::Zero(_M.rows(),_M.cols());
+    //ROS_INFO_STREAM("M:rows"<<_M.rows()<<"col"<<_M.cols()<<"Q:rows"<<_Q.rows()<<"col:"<<_Q.cols());
+    M_QM = _M.transpose()*_Q*_M;//最终的二次型对应的矩阵CT*M_QM*C,_M.transpose().dot*_Q*M
+    //下面开始定义优化函数
+    //M_QM = MatrixXd::eye
+    for(int i = 0; i < nx; i++)//一次项为0
+        c[i] = 0.0;
+
+    const int nnzQ = 3 * segs * (traj_order + 1) * (traj_order + 2) / 2; //n(n-1)/2
+    int    irowQ[nnzQ]; 
+    int    jcolQ[nnzQ];
+    double    dQ[nnzQ];
+    for(int i=0;i<nnzQ;i++){
+        dQ[i]=-999;
+    }
+    sub_shift = 0;
+    int Q_idx = 0;
+
+    for(int k = 0; k < segs; k ++){
+        double scale_k = time[k];
+        for(int p = 0; p < 3; p ++ )
+            for( int i = 0; i < vars_number; i ++ )
+                for( int j = 0; j < vars_number; j ++ )
+                    if( i >= j ){
+                        irowQ[Q_idx] = sub_shift + p * vars_number + i;   
+                        jcolQ[Q_idx] = sub_shift + p * vars_number + j;  
+                        dQ[Q_idx] = M_QM(sub_shift + p * vars_number + i,sub_shift + p * vars_number + j);
+                        //dQ[Q_idx] = 1;
+                        Q_idx ++ ;
+                    }
+        sub_shift += all_vars_number;
+    }
+    // 下面开始OOQP库的求解
+    ROS_INFO("333333333333333");
+    //my=0;
+    //nnzA=0;
+    QpGenSparseMa27 * qp 
+    = new QpGenSparseMa27( nx, my, mz, nnzQ, nnzA, nnzC );
+    cout<<"irowQ: "<<irowQ[nnzQ-1]<<"jcolQ: "<<jcolQ[nnzQ-1];
+    cout<<"nx: "<<nx<<" my: "<<my<<" mz: "<<mz<<" nnzQ: "<<nnzQ<<" nnzA: "<<nnzA<<" nnzC: "<<nnzC<<" size: "<<M_QM.cols()<<" "<<M_QM.rows();
+    for(int i=0;i<nnzQ;i++){
+        cout<<dQ[i]<<endl;
+    }
+    QpGenData * prob = (QpGenData * ) qp->copyDataFromSparseTriple(
+        c,      irowQ,  nnzQ,   jcolQ,  dQ,
+        xlow,   ixlow,  xupp,   ixupp,
+        irowA,  nnzA,   jcolA,  dA,     b,
+        irowC,  nnzC,   jcolC,  dC,
+        clow,   iclow,  cupp,   icupp );
+
+    QpGenVars      * vars  = (QpGenVars *) qp->makeVariables( prob );
+    QpGenResiduals * resid = (QpGenResiduals *) qp->makeResiduals( prob );
+    GondzioSolver  * s     = new GondzioSolver( qp, prob );
+    
+    // Turn Off/On the print of the solving process
+    // s->monitorSelf();
+    ROS_INFO("???");
+    int ierr = s->solve(prob, vars, resid);
+    ROS_INFO("afsaf");
+    if( ierr == 0 ) 
+    {
+        double d_var[nx];
+        vars->x->copyIntoArray(d_var);
+
+        PolyCoeff = MatrixXd::Zero(segs, all_vars_number);
+        PolyTime  = VectorXd::Zero(segs);
+        obj = 0.0;
+        
+        int var_shift = 0;
+
+        MatrixXd Q_o(vars_number,vars_number);
+        //    int s1d1CtrlP_num = traj_order + 1;
+        //    int s1CtrlP_num   = 3 * s1d1CtrlP_num;
+        //int min_order_l = floor(minimize_order);
+        //int min_order_u = ceil (minimize_order);
+
+        for(int i = 0; i < segs; i++ )
+        {   
+            PolyTime(i) = time[i];
+
+            for(int j = 0; j < vars_number; j++)
+                PolyCoeff(i , j) = d_var[j + var_shift];
+            var_shift += all_vars_number;
+            //排序p0x1,p1x1...pnx1,p0y1...pny1...p0x2...
+            // Can't figure out how to dig out the objective value from ooqp solver, have to calculate it manually.
+            /*double scale = time[i];
+            if(min_order_l == min_order_u)
+                Q_o = MQM_u / (double)pow(scale, 2 * min_order_u - 3) * pow(corridor.scale_factor, 2 * min_order_u - 1);
+            else
+                Q_o = MQM_l / (double)pow(scale, 2 * min_order_l - 3) * pow(corridor.scale_factor, 2 * min_order_l - 1)
+                    + MQM_u / (double)pow(scale, 2 * min_order_u - 3) * pow(corridor.scale_factor, 2 * min_order_u - 1);
+        
+            for(int p = 0; p < 3; p ++ )
+            {   
+                VectorXd coeff = PolyCoeff.row(i).segment(p * s1d1CtrlP_num, s1d1CtrlP_num);
+
+                obj += (coeff.transpose() * Q_o * coeff)(0);
+            }*/           
+        }   
+    } 
+    else if( ierr == 3)
+        cout << "The program is provably infeasible, check the formulation.\n";
+    else if (ierr == 4)
+        cout << "The program is very slow in convergence, may have numerical issue.\n";
+    else
+        cout << "Solver numerical error.\n";
+    
+    return ierr;
+    //return 1;
+}

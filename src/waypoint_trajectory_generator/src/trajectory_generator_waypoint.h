@@ -4,11 +4,19 @@
 #include <Eigen/Eigen>
 #include <vector>
 #include "GridNode.h"
+#include <ooqp/QpGenData.h>
+#include <ooqp/QpGenVars.h>
+#include <ooqp/QpGenResiduals.h>
+#include <ooqp/GondzioSolver.h>
+#include <ooqp/QpGenSparseMa27.h>
 // #include <grid_path_searcher/node.h>
 
 class FlightCube;
 class FlightCorridor;
 using namespace std;
+
+
+
 
 class TrajectoryGeneratorWaypoint {
     public:
@@ -165,25 +173,39 @@ public:
 };
 
 
-#include <ooqp/QpGenData.h>
-#include <ooqp/QpGenVars.h>
-#include <ooqp/QpGenResiduals.h>
-#include <ooqp/GondzioSolver.h>
-#include <ooqp/QpGenSparseMa27.h>
 
 
-class spatialTrajOptimizer 
+
+
+
+class BezierTrajOptimizer 
 {
     private:
         double obj;
         Eigen::MatrixXd PolyCoeff;
         Eigen::VectorXd PolyTime;
-        MatrixXd M;
+        Eigen::MatrixXd M;//映射矩阵
+        Eigen::MatrixXd _Q,_M;//优化系数矩阵
+        vector<int> C_;//组合数
+        int segs;
         int traj_order;
-
     public:
-        spatialTrajOptimizer(int order){
+
+
+      int factorial(int n){
+        int fact = 1;
+        for(int i = n; i > 0 ; i--)
+        fact *= i;
+        return fact;    
+      }
+      int  combinatorial(int n, int k) {
+        return factorial(n) / (factorial(k) * factorial(n - k));}
+
+
+        BezierTrajOptimizer(int order){
+          traj_order = order;//轨迹次数，我们这里取7
           if(order ==6){
+            M =  Eigen::MatrixXd::Zero(7, 7);
             M << 1,   0,   0,   0,   0,  0,  0,
 					      -6,   6,   0,   0,   0,  0,  0,
 					      15, -30,  15,   0,   0,  0,  0,
@@ -192,6 +214,7 @@ class spatialTrajOptimizer
 				        -6,  30, -60,  60, -30,  6,  0,
 				        1,  -6,  15, -20,  15, -6,  1;}
           else if(order==7){
+            M =  Eigen::MatrixXd::Zero(8, 8);
             M << 1,    0,    0,    0,    0,   0,   0,   0,
 				        -7,    7,    0,    0,    0,   0,   0,   0,
 				        21,  -42,   21,    0,    0,   0,   0,   0,
@@ -201,15 +224,24 @@ class spatialTrajOptimizer
 				        7,  -42,  105, -140,  105, -42,   7,   0,
 				        -1,    7,  -21,   35,  -35,  21,  -7,   1;
           }
+          for(int i=0;i<=order;i++){
+            C_.push_back(combinatorial(order,i));
+          }
+
         }
-        ~spatialTrajOptimizer(){}
+
+        ~BezierTrajOptimizer(){}
 
         int bezierCurveGeneration( 
-        const FlightCorridor &corridor,
-        const int traj_order,
+        FlightCorridor corridor,
         const double max_vel, 
-        const double max_acc);
-
+        const double max_acc,
+        Eigen::Vector3d start_pos,
+        Eigen::Vector3d end_pos,
+        Eigen::VectorXd time);
+        
+        Eigen::MatrixXd getQ(const int vars_number, const vector<double> Time, const int seg_index);
+        Eigen::MatrixXd getM(const int vars_number, const vector<double> Time, const int seg_index);
         Eigen::MatrixXd getPolyCoeff()
         {
             return PolyCoeff;
@@ -224,6 +256,18 @@ class spatialTrajOptimizer
         {
             return obj;
         };
+        inline Eigen::Vector3d getPosFromBezier(const double & t_now, const int & seg_now ){
+		      Eigen::Vector3d ret = Eigen::VectorXd::Zero(3);
+          double T = PolyTime(seg_now);
+		      for(int i = 0; i < 3; i++)
+		        for(int j = 0; j < traj_order+1; j++)
+		          ret(i) += C_[j] * PolyCoeff(seg_now, i * (traj_order) + j) * pow(t_now/T, j) * pow((1 - t_now/T), (traj_order - j) ); 
+		      return ret;  
+		    };
+
+
+
+
 };
 
 

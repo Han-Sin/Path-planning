@@ -60,5 +60,9 @@ add_executable(trajectory_generator_node
 target_link_libraries(trajectory_generator_node
    ${catkin_LIBRARIES}
    ${PCL_LIBRARIES}
+   ooqpgensparse 
+   ooqpsparse 
+   ooqpgondzio 
+   ooqpbase blas ma27 gfortran f2c  
 )
 
