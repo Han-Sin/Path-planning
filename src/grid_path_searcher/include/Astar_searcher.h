@@ -45,7 +45,7 @@ class AstarPathFinder
 		GridNodePtr terminatePtr;
 		std::multimap<double, GridNodePtr> openSet;
 
-		double getHeu(GridNodePtr node1, GridNodePtr node2);
+		double getHeu(GridNodePtr node1, GridNodePtr node2,int flag=2);
         double getG(GridNodePtr node1, GridNodePtr node2);
 
 		void AstarGetSucc(GridNodePtr currentPtr, std::vector<GridNodePtr> & neighborPtrSets, std::vector<double> & edgeCostSets);		

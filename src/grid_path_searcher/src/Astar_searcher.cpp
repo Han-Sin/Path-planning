@@ -274,7 +274,7 @@ inline void AstarPathFinder::AstarGetSucc(GridNodePtr currentPtr, vector<GridNod
     */
 }
 
-double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2)
+double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2, int flag)
 {
     /*
     choose possible heuristic function you want
@@ -294,7 +294,28 @@ double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2)
     int  x2 = node2->index(0);
     int  y2 = node2->index(1);
     int  z2 = node2->index(2);
-    return sqrt(pow(x1-x2,2)+pow(y1-y2,2)+pow(z1-z2,2));
+
+    switch(flag)
+    {
+        case 1://for Manhattan 曼哈顿
+            return abs(x1-x2)+abs(y1-y2)+abs(z1-z2);
+        case 2://for Euclidean 欧激励的
+            return sqrt(pow(x1-x2,2)+pow(y1-y2,2)+pow(z1-z2,2));
+        case 3:
+            {
+                int dx=abs(x1-x2);
+                int dy=abs(y1-y2);
+                int dz=abs(z1-z2);
+                int dmin=min(min(dx,dy),dz);
+                int dmax=max(max(dx,dy),dz);
+                int dmid=dx+dy+dz-dmin-dmax;
+                double D3=1.73;
+                double D2=1.41;
+                double D1=1;
+                return (D3-D2)*dmin + (D2-D1)*dmid + D1 * dmax;
+            }
+    }
+    
 
 }
 
