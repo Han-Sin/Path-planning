@@ -169,7 +169,7 @@ Visualization Manager:
 
       #贝塞尔轨迹
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /trajectory_generator_node/vis_trajectory_besier
       Name: Besier_Path
       Namespaces:

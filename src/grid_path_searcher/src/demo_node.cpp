@@ -62,10 +62,10 @@ void rcvWaypointsCallback(const nav_msgs::Path & wp)
         return;
 
     Vector3d target_pt;
-    // target_pt << wp.poses[0].pose.position.x,
-    //              wp.poses[0].pose.position.y,
-    //              wp.poses[0].pose.position.z;
-    target_pt<<-4.886, -4.468, 2.500;
+    target_pt << wp.poses[0].pose.position.x,
+                 wp.poses[0].pose.position.y,
+                 wp.poses[0].pose.position.z;
+    // target_pt<<-4.886, -4.468, 2.500;
 
     ROS_INFO("[node] receive the planning target");
     pathFinding(_start_pt, target_pt); 
@@ -153,7 +153,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
 
-#define _use_jps 1
+#define _use_jps 0
 #if _use_jps
     {
         // ROS_INFO("Using JPS!");
@@ -174,7 +174,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     }
 #endif
 
-#define _use_rrt 1
+#define _use_rrt 0
 #if _use_rrt
     {
         _rrt_path_finder->RRTSearch(start_pt,target_pt);

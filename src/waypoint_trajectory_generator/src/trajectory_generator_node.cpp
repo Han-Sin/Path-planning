@@ -482,7 +482,7 @@ void visWayPointTraj_besier( VectorXd time)
             //     vel_pub.push_back(vel);
             //     acc_pub.push_back(acc);
             // }
-            Vector3d vel = Beziertraj.getPosFromBezier(t,i);
+            Vector3d vel = Beziertraj.getVelFromBezier(t,i);
             vel_pub.push_back(vel);
 
             pos = Beziertraj.getPosFromBezier(t,i);
