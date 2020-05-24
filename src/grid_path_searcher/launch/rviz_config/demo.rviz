@@ -148,8 +148,9 @@ Visualization Manager:
       Queue Size: 100
       Value: true
 
+    #走廊
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /trajectory_generator_node/vis_corridor
       Name: corridor
       Namespaces:

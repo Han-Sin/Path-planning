@@ -43,7 +43,7 @@ ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
 
 ros::Publisher  _grid_path_vis_pub,_grid_path_vis_pub_jps,_grid_path_vis_pub_rrt,
  _visited_nodes_vis_pub,_visited_nodes_jps_vis_pub,_visited_nodes_rrt_vis_pub,
-  _grid_map_vis_pub,_simplified_waypoints_pub;
+  _grid_map_vis_pub,_simplified_waypoints_pub,_grid_path_pub;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
@@ -133,8 +133,8 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
     // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
     
-    // _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
-    _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
+    _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
+    _grid_path_pub.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
     
     // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
     // visVisitedNode(simplified_points_path);//可视化关键点
@@ -222,6 +222,7 @@ int main(int argc, char** argv)
     _visited_nodes_jps_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_jps_vis", 1);
     _visited_nodes_rrt_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_rrt_vis", 1);
     _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);//发布优化后的轨迹
+    _grid_path_pub                = nh.advertise<nav_msgs::Path>("grid_path",50);//发布优化后的轨迹
     
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);
