@@ -51,6 +51,7 @@ RRTPathSearch   *  _rrt_path_finder  = new RRTPathSearch();
 void rcvWaypointsCallback(const nav_msgs::Path & wp);
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
 
+void vis_node_line_Path(vector<Vector3d> nodes);
 void visGridPath( vector<Vector3d> nodes, int alogrithm_choice );
 void visVisitedNode( vector<Vector3d> nodes,int alogrithm_choice);
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt);
@@ -151,7 +152,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     //_use_jps = 1 -> Use JPS
     //you just need to change the #define value of _use_jps
 
-#define _use_jps 0
+#define _use_jps 1
 #if _use_jps
     {
         // ROS_INFO("Using JPS!");
@@ -172,7 +173,7 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     }
 #endif
 
-#define _use_rrt 0
+#define _use_rrt 1
 #if _use_rrt
     {
         _rrt_path_finder->RRTSearch(start_pt,target_pt);
@@ -180,8 +181,9 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
         auto visited_nodes = _rrt_path_finder->getVisitedNodes();
 
         //Visualize the result
-        visGridPath   (grid_path, 2);//2 for RRT
+        // visGridPath   (grid_path, 2);//2 for RRT
         visVisitedNode(visited_nodes,2);
+        vis_node_line_Path(grid_path);
 
         //Reset map for next call
         _rrt_path_finder->resetUsedGrids();
@@ -284,9 +286,9 @@ void visGridPath( vector<Vector3d> nodes, int alogrithm_choice )
         case 0://for A*
         {
             node_vis.color.a = 1.0;
-            node_vis.color.r = 1.0;
-            node_vis.color.g = 1.0;
-            node_vis.color.b = 1.0;
+            node_vis.color.r = 0.0;
+            node_vis.color.g = 0.0;
+            node_vis.color.b = 0.0;
             break;
         }
         case 1:
@@ -409,9 +411,9 @@ void visVisitedNode(vector<Vector3d> nodes,int alogrithm_choice)
         
         case 2://for RRT
         {
-            node_vis.color.a = 0.4;
-            node_vis.color.r = 1.0;
-            node_vis.color.g = 1.0;
+            node_vis.color.a = 0.8;
+            node_vis.color.r = 0.0;
+            node_vis.color.g = 0.0;
             node_vis.color.b = 1.0;
             break;
         }
@@ -455,4 +457,47 @@ void visVisitedNode(vector<Vector3d> nodes,int alogrithm_choice)
             break;
         }
     }
+}
+
+
+
+
+
+
+void vis_node_line_Path(vector<Vector3d> nodes)
+{
+    visualization_msgs::Marker Points, Line; 
+    Points.header.frame_id = Line.header.frame_id = "world";
+    Points.header.stamp    = Line.header.stamp    = ros::Time::now();
+    Points.ns              = Line.ns              = "demo_node/RRTstarPath";
+    Points.action          = Line.action          = visualization_msgs::Marker::ADD;
+    Points.pose.orientation.w = Line.pose.orientation.w = 1.0;
+    Points.id = 0;
+    Line.id   = 1;
+    Points.type = visualization_msgs::Marker::POINTS;
+    Line.type   = visualization_msgs::Marker::LINE_STRIP;
+
+    Points.scale.x = _resolution/2*4; 
+    Points.scale.y = _resolution/2*4;
+    Line.scale.x   = _resolution/2;
+
+    //points are green and Line Strip is blue
+    Points.color.r = 1.0f;
+    Points.color.a = 1.0;
+    Line.color.b   = 1.0;
+    Line.color.a   = 1.0;
+
+    geometry_msgs::Point pt;
+    for(int i = 0; i < int(nodes.size()); i++)
+    {
+        Vector3d coord = nodes[i];
+        pt.x = coord(0);
+        pt.y = coord(1);
+        pt.z = coord(2);
+
+        Points.points.push_back(pt);
+        Line.points.push_back(pt);
+    }
+    _grid_path_vis_pub_rrt.publish(Points);
+    _grid_path_vis_pub_rrt.publish(Line); 
 }
