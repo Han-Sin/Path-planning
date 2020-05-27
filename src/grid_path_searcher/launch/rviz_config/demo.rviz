@@ -168,6 +168,15 @@ Visualization Manager:
       Queue Size: 100
       Value: true
 
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /drone_node/drone2_pos
+      Name: Drone2_pos
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
       #贝塞尔轨迹
     - Class: rviz/Marker
       Enabled: true
