@@ -174,8 +174,11 @@ void Drone_control()
     }
 
     if(e_d==0)//在安全距离内，不进行跟踪，只旋转
+    {
         v_x_set=0;
         v_y_set=0;
+    }
+
 
 
     vel_msg.linear.x=v_x_set;
@@ -183,7 +186,7 @@ void Drone_control()
 
     turtle_vel.publish(vel_msg);  //输出速度消息
 
-    // ROS_INFO("UAV : v_x=%.2f  v_y=%.2f ",vel_msg.linear.x, vel_msg.linear.y);
+    ROS_INFO("UAV : v_x=%.2f  v_y=%.2f ",vel_msg.linear.x, vel_msg.linear.y);
     // ROS_INFO(" ");
 
 }

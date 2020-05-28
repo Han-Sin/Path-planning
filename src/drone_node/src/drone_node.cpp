@@ -58,8 +58,8 @@ double y_UAV=1;//飞机世界坐标系的y坐标
 double theta_UAV=0;//飞机与世界坐标系x轴的夹角
 
 double h=5;//飞行定高
-double angle_min=20;//保持检测的最小角度
-double angle_max=30;//保持检测的最大角度   //实际中用70,此处为调试方便写30
+double angle_min=5;//保持检测的最小角度
+double angle_max=8;//保持检测的最大角度   //实际中用70,此处为调试方便写30
 double d_min=tan(angle_min*D2R)*h;  //保持检测的最小距离
 double d_max=tan(angle_max*D2R)*h;  //保持检测的最大距离
 
@@ -107,6 +107,9 @@ void rcvVelCallBack(nav_msgs::Path vel)
             visVisitedNode(drone_pos,1);
             x_target=current_pos[0];
             y_target=current_pos[1];
+
+            Drone_control();
+
             ros::Rate rate(100);
             rate.sleep();
         }
@@ -246,10 +249,9 @@ void Drone_control()
     d_y=P_A_BORG(1,0);
     d=sqrt(d_x*d_x+d_y*d_y);
 
-    cout<<"d= "<<d<<"  d_min=  "<<d_min<<"  d_max= "<<d_max<<endl;
+    
 
     e_d=d-my_E(d);
-    cout<<"ed="<<e_d<<endl;
 
     VB_A=R_WA.inverse()*VB_W;
 
@@ -271,10 +273,10 @@ void Drone_control()
 
     vel_msg.angular.z = e_theta+k2*v_target/d*sin(theta_d-e_theta); //设置角速度
 
-    ROS_INFO("angular:e_theta=%.2f v_target=%.2f d=%.2f theta_d=%.2f  theta_UAV=%.2f",e_theta,v_target,d,theta_d,theta_UAV);
 
     v_x_set=k1*e_d*cos(e_theta)+v_target*cos(theta_d-e_theta)*cos(e_theta); //计算速度x分量
     v_y_set=k1*e_d*sin(e_theta)+v_target*cos(theta_d-e_theta)*sin(e_theta); //计算速度y分量
+    // ROS_INFO("e_theta=%f   v_y_set=%f",e_theta,v_y_set);
 
     double v_UAV_mod=v_mod(v_x_set,v_y_set);
     if (v_mod(v_x_set,v_y_set)>v_max)  //如果速度超限，限幅
@@ -284,24 +286,40 @@ void Drone_control()
     }
 
     if(e_d==0)//在安全距离内，不进行跟踪，只旋转
+    {
         v_x_set=0;
         v_y_set=0;
+    }
+
+    // v_x_set=1;
+    // v_y_set=1;
 
 
     vel_msg.linear.x=v_x_set;
     vel_msg.linear.y=v_y_set;
 
-    // y_UAV+=v_x_set*sin(theta_UAV)*sample_time+v_y_set*cos(theta_UAV)*sample_time;
-    // x_UAV+=v_y_set*sin(theta_UAV)*sample_time+v_x_set*cos(theta_UAV)*sample_time;
+    y_UAV+=v_x_set*sin(theta_UAV)*sample_time+v_y_set*cos(theta_UAV)*sample_time;
+    x_UAV+=-v_y_set*sin(theta_UAV)*sample_time+v_x_set*cos(theta_UAV)*sample_time;
 
-    x_UAV+=v_x_set*sample_time;
-    y_UAV+=v_y_set*sample_time;
+    // x_UAV+=v_x_set*sample_time;
+    // y_UAV+=v_y_set*sample_time;
     theta_UAV+=vel_msg.angular.z*sample_time;
-    ROS_INFO("X_UAV=%f   y_UAV=%f",v_x_set,v_y_set);
+
+    static int count=0;
+    count++;
+    if(count%10==100)
+    {
+        cout<<"d= "<<d<<"  d_min=  "<<d_min<<"  d_max= "<<d_max<<endl;
+        cout<<"ed="<<e_d<<endl;
+        ROS_INFO("X_UAV=%f   y_UAV=%f   w=%f" ,v_x_set,v_y_set,vel_msg.angular.z);
+        ROS_INFO("angular:e_theta=%.2f v_target=%.2f d=%.2f theta_d=%.2f  theta_UAV=%.2f",e_theta,v_target,d,theta_d,theta_UAV);
+
+    }
+
 
     Vector3d dronepos2;
     vector<Vector3d> drone_pos;
-    dronepos2<<x_UAV,y_UAV,0;
+    dronepos2<<x_UAV,y_UAV,2;
     drone_pos.push_back(dronepos2);
     visVisitedNode(drone_pos,2);
 
@@ -373,10 +391,21 @@ void visVisitedNode( vector<Vector3d> nodes ,int flag)
     node_vis.pose.orientation.y = 0.0;
     node_vis.pose.orientation.z = 0.0;
     node_vis.pose.orientation.w = 1.0;
-    node_vis.color.a = 1.0;
-    node_vis.color.r = 0.0;
-    node_vis.color.g = 0.0;
-    node_vis.color.b = 0.0;
+    if(flag==1)
+    {
+        node_vis.color.a = 1.0;
+        node_vis.color.r = 0.0;
+        node_vis.color.g = 0.0;
+        node_vis.color.b = 0.0;
+    }
+    else if(flag==2)
+    {
+        node_vis.color.a = 1.0;
+        node_vis.color.r = 1.0;
+        node_vis.color.g = 0.0;
+        node_vis.color.b = 0.0;
+    }
+
 
     // node_vis.scale.x = _resolution;
     // node_vis.scale.y = _resolution;
