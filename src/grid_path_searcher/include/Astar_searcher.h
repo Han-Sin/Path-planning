@@ -81,6 +81,7 @@ class AstarPathFinder
 		// void getTurningPoints();
 		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
 		bool if_collision(int x,int y,int z);
+		Eigen::Vector3d target_point_generator(Eigen::Vector3d front_drone_pos,Eigen::Vector3d offset);
 };
 
 inline bool AstarPathFinder::isOccupied(const Eigen::Vector3i & index) const

@@ -38,12 +38,14 @@ Vector3d _start_pt;
 Vector3d _map_lower, _map_upper;
 int _max_x_id, _max_y_id, _max_z_id;
 
+Vector3d _back_drone_pos;
+
 // ros related
-ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub;
+ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub,_back_drone_pos_sub;
 
 ros::Publisher  _grid_path_vis_pub,_grid_path_vis_pub_jps,_grid_path_vis_pub_rrt,
  _visited_nodes_vis_pub,_visited_nodes_jps_vis_pub,_visited_nodes_rrt_vis_pub,
-  _grid_map_vis_pub,_simplified_waypoints_pub,_grid_path_pub;
+  _grid_map_vis_pub,_simplified_waypoints_pub,_grid_path_pub,_grid_path_pub2;
 
 AstarPathFinder * _astar_path_finder     = new AstarPathFinder();
 JPSPathFinder   * _jps_path_finder       = new JPSPathFinder();
@@ -54,7 +56,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map);
 void vis_node_line_Path(vector<Vector3d> nodes);
 void visGridPath( vector<Vector3d> nodes, int alogrithm_choice );
 void visVisitedNode( vector<Vector3d> nodes,int alogrithm_choice);
-void pathFinding(const Vector3d start_pt, const Vector3d target_pt);
+void pathFinding(const Vector3d start_pt, const Vector3d target_pt,int flag=1);
 
 void rcvWaypointsCallback(const nav_msgs::Path & wp)
 {     
@@ -114,7 +116,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
     _has_map = true;
 }
 
-void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
+void pathFinding(const Vector3d start_pt, const Vector3d target_pt,int flag)
 {
     //Call A* to search for a path
 
@@ -123,30 +125,42 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt)
     _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
     //Retrieve the path
     auto grid_path     = _astar_path_finder->getPath();
-    auto visited_nodes = _astar_path_finder->getVisitedNodes();
-    auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
-    // ROS_INFO("Using A*!");
-    //发布不采样的关键点
-    // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
-    // _simplified_waypoints_pub2.publish(_astar_path_finder->vector3d_to_waypoints(simplified_points_path2));
-    // auto simplified_points_path = _astar_path_finder->getSimplifiedPoints_by_lines();//化简后的关键点,直线查找
-    nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
-    // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
     
-    _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
-    _grid_path_pub.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
+    if(flag==1)
+    {
+        auto visited_nodes = _astar_path_finder->getVisitedNodes();
+        auto simplified_points_path = _astar_path_finder->getSimplifiedPoints(1000);//化简后的关键点（100指不中间采样）
+        
+        // ROS_INFO("Using A*!");
+        //发布不采样的关键点
+        // auto simplified_points_path2 = _astar_path_finder->getSimplifiedPoints(100);//化简后的关键点(不采样)
+        // _simplified_waypoints_pub2.publish(_astar_path_finder->vector3d_to_waypoints(simplified_points_path2));
+        // auto simplified_points_path = _astar_path_finder->getSimplifiedPoints_by_lines();//化简后的关键点,直线查找
+        nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(simplified_points_path);
+        // nav_msgs::Path simplified_waypoints=_astar_path_finder->vector3d_to_waypoints(grid_path);
+        
+        _simplified_waypoints_pub.publish(simplified_waypoints);//发布关键点
+        _grid_path_pub.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
+        
+        // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
+        // visVisitedNode(simplified_points_path);//可视化关键点
+        // _simplified_waypoints_pub.publish(simplified_waypoints);
+        // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
+        ros::Time time_2 = ros::Time::now();
+        // ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
+        //Visualize the result
+        visGridPath (grid_path, 0);//可视化搜寻的栅格地图
+        visVisitedNode(visited_nodes,0);
+        // visVisitedNode(simplified_points_path);
+        // visVisitedNode(simplified_path_RDP);
+    }
+    else if(flag==2)
+    {
+        visGridPath(grid_path,1);
+        _grid_path_pub2.publish(_astar_path_finder->vector3d_to_waypoints(grid_path));//发布未化简的A×路径
+    }
+        
     
-    // _simplified_waypoints_pub3.publish(_astar_path_finder->vector3d_to_waypoints(temp_path));
-    // visVisitedNode(simplified_points_path);//可视化关键点
-    // _simplified_waypoints_pub.publish(simplified_waypoints);
-    // _simplified_waypoints_pub.publish(_astar_path_finder->vector3d_to_waypoints(simplified_path_RDP));
-    ros::Time time_2 = ros::Time::now();
-    // ROS_WARN("Total time cost is %f ms", (time_2 - time_1).toSec() * 1000.0);
-    //Visualize the result
-    visGridPath (grid_path, 0);//可视化搜寻的栅格地图
-    visVisitedNode(visited_nodes,0);
-    // visVisitedNode(simplified_points_path);
-    // visVisitedNode(simplified_path_RDP);
     //Reset map for next call
     _astar_path_finder->resetUsedGrids();
     //_use_jps = 0 -> Do not use JPS
@@ -202,6 +216,30 @@ void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
     Vector3d current_pt(pos_msg.points[0].x,pos_msg.points[0].y,pos_msg.points[0].z);
     _start_pt=current_pt;
 
+     Vector3d offset(2,2,2);
+    Vector3d target=_astar_path_finder->target_point_generator(_start_pt,offset);
+    
+    ROS_INFO("FRONT DRONE POS = %f  %f  %f  A*",_start_pt(0),_start_pt(1),_start_pt(2));
+    ROS_INFO("TARGET DRONE POS = %f  %f  %f",target(0),target(1),target(2));
+
+    vector<Vector3d> temp_v;
+    temp_v.push_back(target);
+    visVisitedNode(temp_v,2);
+
+
+    static int count=0;
+    count++;
+    if(count%5==0)
+        pathFinding(_back_drone_pos,target,2);
+}
+
+
+
+void rcvBackDronePosCallBack(const visualization_msgs::Marker & p)
+{
+    auto temp_p=p.points[0];
+    _back_drone_pos<<temp_p.x,temp_p.y,temp_p.z;
+    // ROS_INFO("BACK DRONE POS = %f  %f  %f",_back_drone_pos(0),_back_drone_pos(1),_back_drone_pos(2));
 }
 
 int main(int argc, char** argv)
@@ -213,6 +251,7 @@ int main(int argc, char** argv)
     _map_sub  = nh.subscribe( "map",       1, rcvPointCloudCallBack );
     _pts_sub  = nh.subscribe( "waypoints", 1, rcvWaypointsCallback );
     drone_pos_sub = nh.subscribe("/drone_node/drone_pos",50,rcvDronePosCallBack);
+    _back_drone_pos_sub = nh.subscribe( "/drone_node/drone2_pos", 1, rcvBackDronePosCallBack );
 
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
@@ -223,6 +262,7 @@ int main(int argc, char** argv)
     _visited_nodes_rrt_vis_pub        = nh.advertise<visualization_msgs::Marker>("visited_nodes_rrt_vis", 1);
     _simplified_waypoints_pub     = nh.advertise<nav_msgs::Path>("simplified_waypoints",50);//发布优化后的轨迹
     _grid_path_pub                = nh.advertise<nav_msgs::Path>("grid_path",50);//发布优化后的轨迹
+    _grid_path_pub2                = nh.advertise<nav_msgs::Path>("grid_path2",50);//发布优化后的轨迹
     
     nh.param("map/cloud_margin",  _cloud_margin, 0.0);
     nh.param("map/resolution",    _resolution,   0.2);
