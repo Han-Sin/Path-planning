@@ -559,15 +559,43 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     const double max_acc,
     Vector3d start_pos,
     Vector3d end_pos,
-    VectorXd time
+    VectorXd time,
+    Vector3d start_vel,
+    Vector3d start_acc
     )
 {   
     //ROS_INFO("zheli!!!!!!");
     segs = corridor.cubes.size();
-    // ROS_INFO_STREAM("segs: "<<segs);
+    ROS_INFO_STREAM("segs: "<<segs);
     vector<double>  time_intervals;
     for(int i=0;i<segs;i++)
         time_intervals.push_back(time(i));
+
+
+    /*PolyCoeff = MatrixXd::Zero(segs, all_vars_number);
+        PolyTime  = VectorXd::Zero(segs);
+        obj = 0.0;
+        
+        int var_shift = 0;
+
+        MatrixXd Q_o(vars_number,vars_number);
+        //    int s1d1CtrlP_num = traj_order + 1;
+        //    int s1CtrlP_num   = 3 * s1d1CtrlP_num;
+        //int min_order_l = floor(minimize_order);
+        //int min_order_u = ceil (minimize_order);
+
+        for(int i = 0; i < segs; i++ )
+        {   
+            PolyTime(i) = time[i];
+
+            for(int j = 0; j < all_vars_number; j++)
+                {
+                    PolyCoeff(i , j) = d_var[j + var_shift];
+                    // cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;;
+                }
+            var_shift += all_vars_number;     
+        }   
+    */
     //time_intervals.push_back(1);
     int vars_number = traj_order+1;
     int all_vars_number = 3*vars_number;//XYZ
@@ -587,8 +615,8 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     //c00x c01x ... c07x  c00y c01y...c07z  c00z c01z... c07z
     //c10x
     //等式约束部分
-    int equ_con_s_num = 3 * 4; // start state p v a j
-    int equ_con_e_num = 3 * 4; // end state p v a j 
+    int equ_con_s_num = 3 * 3; // start state p v a 
+    int equ_con_e_num = 3 * 3; // end state p v a 
     int equ_con_continuity_num = 3 * 4 * (segs - 1);
     int equ_con_num = equ_con_s_num + equ_con_e_num + equ_con_continuity_num;  // p, v, a j in x, y, z axis in each segment's joint position
     //int ieq_con_pos_num = 0; // all control points within the polytopes, each face assigned a linear constraint
@@ -601,20 +629,18 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     for(int i = 0; i < equ_con_num; i ++ )//起点-》终点-》中间点
     { 
         double beq_i;//pvaj
-        if(i < 3)                    beq_i = start_pos(i); 
-        else if (i >= 3  && i < 6  ) beq_i = 0;//v 
-        else if (i >= 6  && i < 9  ) beq_i = 0;//a
-        else if (i >= 9  && i < 12 ) beq_i = 0;//j
-        else if (i >= 12 && i < 15 ) beq_i = end_pos(i-12);//pend_pos(i)
-        else if (i >= 15 && i < 18 ) beq_i = 0;//end:v
-        else if (i >= 18 && i < 21 ) beq_i = 0;//end:a
-        else if (i >= 21 && i < 24 ) beq_i = 0;//end:j
+        if(i < 3)                    beq_i = start_pos(i); //p
+        else if (i >= 3  && i < 6  ) beq_i = start_vel(i-3);//v 
+        else if (i >= 6  && i < 9  ) beq_i = start_acc(i-6);//a
+        else if (i >= 9 && i < 12 ) beq_i = end_pos(i-9);//pend_pos(i)
+        else if (i >= 12 && i < 15 ) beq_i = 0;//end:v
+        else if (i >= 15 && i < 18 ) beq_i = 0;//end:a
         else beq_i = 0.0;//连续性约束
         b[i] = beq_i;
     }
     int nn_idx  = 0;
     int row_idx = 0;
-    int nnzA  = (1 * 3 + 2 * 3 + 3 * 3 + 4 * 3) * 2 + (segs - 1) * (2 + 4 + 6 + 8) * 3;
+    int nnzA  = (1 * 3 + 2 * 3 + 3 * 3 ) * 2 + (segs - 1) * (2 + 4 + 6 + 8) * 3;
 
 
     double dA[nnzA];
@@ -667,27 +693,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             nn_idx += 3;
         }
         //jerk
-        for(int i = 0; i < 3; i++)
-        { 
-            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
-            dA[nn_idx+1] =  -1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
-            dA[nn_idx+2] =  -1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
-            dA[nn_idx+3] =   1.0 * traj_order * (traj_order - 1)*(traj_order - 2)/pow(time_intervals[0],3);
-            
-            irowA[nn_idx]   = row_idx;
-            irowA[nn_idx+1] = row_idx;
-            irowA[nn_idx+2] = row_idx;
-            irowA[nn_idx+3] = row_idx;
-
-            jcolA[nn_idx]   = i * vars_number;
-            jcolA[nn_idx+1] = i * vars_number + 1;
-            jcolA[nn_idx+2] = i * vars_number + 2;
-            jcolA[nn_idx+3] = i * vars_number + 3;
-
-            row_idx ++;
-            nn_idx += 4;
-        }
-
+        
 
      
 
@@ -737,27 +743,6 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             nn_idx += 3;
         }
         //jerk
-        for(int i = 0; i < 3; i++)
-        { 
-            dA[nn_idx]   =   1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
-            dA[nn_idx+1] = - 1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
-            dA[nn_idx+2] = - 1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
-            dA[nn_idx+3] =   1.0 * traj_order * (traj_order - 1)* (traj_order - 2) / pow(time_intervals[segs-1],3);
-            
-            irowA[nn_idx]   = row_idx;
-            irowA[nn_idx+1] = row_idx;
-            irowA[nn_idx+2] = row_idx;
-            irowA[nn_idx+3] = row_idx;
-
-            jcolA[nn_idx]   = nx - 1 - (2 - i) * vars_number - 3;
-            jcolA[nn_idx+1] = nx - 1 - (2 - i) * vars_number - 2;
-            jcolA[nn_idx+2] = nx - 1 - (2 - i) * vars_number - 1;
-            jcolA[nn_idx+3] = nx - 1 - (2 - i) * vars_number ;
-
-
-            row_idx ++;
-            nn_idx += 4;
-        }
         
     
 
@@ -1027,7 +1012,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     int Q_idx = 0;
 
     for(int k = 0; k < segs; k ++){
-        double scale_k = time[k];
+        double scale_k = time_intervals[k];
         for(int p = 0; p < 3; p ++ )
             for( int i = 0; i < vars_number; i ++ )
                 for( int j = 0; j < vars_number; j ++ )
@@ -1045,11 +1030,8 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     //nnzA=0;
     QpGenSparseMa27 * qp 
     = new QpGenSparseMa27( nx, my, mz, nnzQ, nnzA, nnzC );
-    cout<<"irowQ: "<<irowQ[nnzQ-1]<<"jcolQ: "<<jcolQ[nnzQ-1];
-    cout<<"nx: "<<nx<<" my: "<<my<<" mz: "<<mz<<" nnzQ: "<<nnzQ<<" nnzA: "<<nnzA<<" nnzC: "<<nnzC<<" size: "<<M_QM.cols()<<" "<<M_QM.rows();
-    for(int i=0;i<nnzQ;i++){
-        // cout<<dQ[i]<<endl;
-    }
+    //cout<<"irowQ: "<<irowQ[nnzQ-1]<<"jcolQ: "<<jcolQ[nnzQ-1];
+    //cout<<"nx: "<<nx<<" my: "<<my<<" mz: "<<mz<<" nnzQ: "<<nnzQ<<" nnzA: "<<nnzA<<" nnzC: "<<nnzC<<" size: "<<M_QM.cols()<<" "<<M_QM.rows();
     QpGenData * prob = (QpGenData * ) qp->copyDataFromSparseTriple(
         c,      irowQ,  nnzQ,   jcolQ,  dQ,
         xlow,   ixlow,  xupp,   ixupp,
@@ -1093,7 +1075,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
 
         for(int i = 0; i < segs; i++ )
         {   
-            PolyTime(i) = time[i];
+            PolyTime(i) = time_intervals[i];
 
             for(int j = 0; j < all_vars_number; j++)
                 {

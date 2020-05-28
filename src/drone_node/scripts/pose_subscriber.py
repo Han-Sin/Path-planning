@@ -19,6 +19,7 @@ def poseCallback(msg):
     # rospy.loginfo(msg.points[0].x)
     print("check")
     for i in msg.poses:
+        # print(i.pose.position.x)
         v_x_list.append(i.pose.position.x)
         v_y_list.append(i.pose.position.y)
     # x_list.append(msg.points[0].x)

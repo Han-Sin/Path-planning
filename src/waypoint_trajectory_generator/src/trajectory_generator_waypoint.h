@@ -236,7 +236,10 @@ class BezierTrajOptimizer
         const double max_acc,
         Eigen::Vector3d start_pos,
         Eigen::Vector3d end_pos,
-        Eigen::VectorXd time);
+        Eigen::VectorXd time,
+        Eigen::Vector3d start_vel,
+        Eigen::Vector3d start_acc
+        );
         
         Eigen::MatrixXd getQ(const int vars_number, const vector<double> Time, const int seg_index);
         Eigen::MatrixXd getM(const int vars_number, const vector<double> Time, const int seg_index);
@@ -281,7 +284,21 @@ class BezierTrajOptimizer
               // ROS_INFO("ret=%f  %f  %f",ret(0),ret(1),ret(2));
 		      return ret;  
 		    };
-
+        inline Eigen::Vector3d getAccFromBezier(const double & t_now, const int & seg_now ){
+		      Eigen::Vector3d ret = Eigen::VectorXd::Zero(3);
+          double T = PolyTime(seg_now);
+          // T=1;
+          // cout<<PolyCoeff;
+		      for(int i = 0; i < 3; i++)
+		        for(int j = 0; j < traj_order-1; j++)
+            {
+              double c_n=traj_order*(traj_order-1)*(PolyCoeff(seg_now, i * (traj_order+1) + j + 2)-2*PolyCoeff(seg_now, i * (traj_order+1) + j + 1)+PolyCoeff(seg_now, i * (traj_order+1) + j))/pow(T,2);
+              ret(i)+=combinatorial(traj_order-2,j)*c_n*pow(t_now/T, j) * pow((1 - t_now/T), (traj_order-2 - j) );
+            }
+		          // ret(i) += C_[j] * PolyCoeff(seg_now, i * (traj_order+1) + j) * pow(t_now/T, j) * pow((1 - t_now/T), (traj_order - j) ); 
+              // ROS_INFO("ret=%f  %f  %f",ret(0),ret(1),ret(2));
+		      return ret;  
+		    };
 
 
 

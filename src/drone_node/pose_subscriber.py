@@ -13,7 +13,7 @@ def pose_subscriber():
     rospy.init_node('pose_subscriber', anonymous=True)
 
 	# 创建一个Subscriber，订阅名为/turtle1/pose的topic，注册回调函数poseCallback
-    rospy.Subscriber("/drone_node/drone2_pos", Pose, poseCallback)
+    rospy.Subscriber("/trajectory_generator_node/vel", Pose, poseCallback)
 
 	# 循环等待回调函数
     rospy.spin()
