@@ -131,7 +131,7 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /demo_node/grid_path_vis_jps
       Name: gridPath_jps
       Namespaces:
@@ -153,6 +153,16 @@ Visualization Manager:
       Enabled: true
       Marker Topic: /trajectory_generator_node/vis_corridor
       Name: corridor
+      Namespaces:
+        demo_node/jps_path: false
+      Queue Size: 100
+      Value: true
+
+    #走廊
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory_generator_node/vis_corridor2
+      Name: corridor2
       Namespaces:
         demo_node/jps_path: false
       Queue Size: 100

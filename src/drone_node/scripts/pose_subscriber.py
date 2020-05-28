@@ -11,14 +11,26 @@ from nav_msgs.msg import Path
 x_list=[]
 y_list=[]
 z_list=[]
+v_x_list=[]
+v_y_list=[]
 
 def poseCallback(msg):
     # rospy.loginfo("Turtle pose: x:%0.6f, y:%0.6f", msg.x, msg.y)
     # rospy.loginfo(msg.points[0].x)
-    x_list.append(msg.points[0].x)
-    y_list.append(msg.points[0].y)
-    # plt.plot(x_list)
-    # plt.pause(0.01)
+    print("check")
+    for i in msg.poses:
+        v_x_list.append(i.pose.position.x)
+        v_y_list.append(i.pose.position.y)
+    # x_list.append(msg.points[0].x)
+    # y_list.append(msg.points[0].y)
+    fig = plt.figure()
+    x_plot=fig.add_subplot(2,1,1)
+    y_plot=fig.add_subplot(2,1,2)
+    x_plot.plot(v_x_list)
+    y_plot.plot(v_y_list)
+    plt.show()
+    x_list.clear()
+    y_list.clear()
 
 def showCallback(msg):
     fig = plt.figure()
@@ -33,11 +45,12 @@ def showCallback(msg):
 
 def pose_subscriber():
 	# ROS节点初始化
+    print("check2")
     rospy.init_node('pose_subscriber', anonymous=True)
 
 	# 创建一个Subscriber，订阅名为/turtle1/pose的topic，注册回调函数poseCallback
-    rospy.Subscriber("/drone_node/drone2_pos", Marker, poseCallback)
-    rospy.Subscriber("/waypoint_generator/waypoints",Path,showCallback)
+    rospy.Subscriber("/trajectory_generator_node/vel", Path, poseCallback)
+    # rospy.Subscriber("/waypoint_generator/waypoints",Path,showCallback)
 
 	# 循环等待回调函数
     rospy.spin()

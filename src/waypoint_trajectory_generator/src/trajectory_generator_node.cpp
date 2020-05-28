@@ -39,9 +39,9 @@ using namespace Eigen;
     Vector3d _map_lower, _map_upper;
     int _max_x_id, _max_y_id, _max_z_id;
 //
-    TrajectoryGeneratorWaypoint * _trajGene     = new TrajectoryGeneratorWaypoint();
+    TrajectoryGeneratorWaypoint * _trajGene      = new TrajectoryGeneratorWaypoint();
     FlightCorridor* _corridor                    = new FlightCorridor();
-    // FlightCorridor* _corridor2                    = new FlightCorridor();
+    FlightCorridor* _corridor2                   = new FlightCorridor();
 
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
@@ -69,7 +69,7 @@ using namespace Eigen;
     void rcvMinSnapCallBack(const nav_msgs::Path & wp);
     nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
 
-    void visCorridor(int flag);
+    void visCorridor(FlightCorridor* cor,int flag);
 
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
@@ -90,7 +90,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
         // set obstalces into grid map for path planning
         _trajGene->setObs(pt.x, pt.y, pt.z);
         _corridor->setObs(pt.x, pt.y, pt.z);
-        // _corridor2->setObs(pt.x, pt.y, pt.z);
+        _corridor2->setObs(pt.x, pt.y, pt.z);
         // ROS_INFO("setting %f",pt.x);
     }
 
@@ -98,15 +98,14 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
 
 
 
-VectorXd corridor_time_generator()
+VectorXd corridor_time_generator(FlightCorridor* cor)
 { 
-
-    VectorXd time(_corridor->cubes.size());
+    VectorXd time(cor->cubes.size());
 
     // The time allocation is many relative timelines but not one common timeline
     for(int i = 0; i < time.rows(); i++)
     {
-        double distance = (_corridor->cubes[i].start_node->coord-_corridor->cubes[i].end_node->coord).norm();
+        double distance = (cor->cubes[i].start_node->coord-cor->cubes[i].end_node->coord).norm();
         // double distance = (Path.row(i+1) - Path.row(i)).norm();    // or .lpNorm<2>()
         double x1 = _Vel * _Vel / (2 * _Acc); 
         double x2 = distance - 2 * x1;
@@ -183,10 +182,10 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
         if(suc_flag)
             break;
     }
-    VectorXd corridor_time=corridor_time_generator();//生成时间
+    VectorXd corridor_time=corridor_time_generator(_corridor);//生成时间
     ros::Time time_corr_end=ros::Time::now();
     ROS_WARN("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
-    visCorridor(1);
+    visCorridor(_corridor,1);
     //ROS_INFO("000000!");
     ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
     int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
@@ -222,6 +221,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 
 void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
 {   
+    ROS_INFO("receive wp 2!!!");
     vector<Vector3d> wp_list;
     wp_list.clear();
 
@@ -240,20 +240,24 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     int check_order=0;
     int suc_flag=0;
     // while(false)
+    int count2=0;
     while(true)
     {
-        GridNodePtr start_node=new GridNode(_corridor->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
+        count2++;
+        if(count2>100)
+            ROS_INFO("%d",count2);
+        GridNodePtr start_node=new GridNode(_corridor2->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
         for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
         {
-            GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+            GridNodePtr end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
             FlightCube temp_cube(start_node,end_node);
             // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
-            if(_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
+            if(_corridor2->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
             {
                 suc_flag=1;
                 break;
             }
-            else if(!_corridor->check_cube_safe(temp_cube))
+            else if(!_corridor2->check_cube_safe(temp_cube))
                 break;
             else if(check_order==wp_list.size())
             {
@@ -265,53 +269,53 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
 
         GridNodePtr end_node;
         if(suc_flag)
-            end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+            end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
         else
-            end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
+            end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order-1]),wp_list[check_order-1]);
         FlightCube temp_cube(start_node,end_node);
-        _corridor->expand_cube(temp_cube);
-        _corridor->update_attributes(temp_cube);
+        _corridor2->expand_cube(temp_cube);
+        _corridor2->update_attributes(temp_cube);
         // temp_cube.Display();
-        _corridor->cubes.push_back(temp_cube);
+        _corridor2->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
             break;
     }
-    VectorXd corridor_time=corridor_time_generator();//生成时间
+    VectorXd corridor_time=corridor_time_generator(_corridor2);//生成时间
     ros::Time time_corr_end=ros::Time::now();
-    ROS_WARN("corridor generation success! Time cost is %f  ms",(time_corr_end-time_corr_start).toSec()*1000);
-    visCorridor(2);
-    // //ROS_INFO("000000!");
-    // ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
+    ROS_WARN("corridor2222 generation success! Time cost is %f  ms   size=%d",(time_corr_end-time_corr_start).toSec()*1000,_corridor2->cubes.size());
+    visCorridor(_corridor2,2);
+    // // //ROS_INFO("000000!");
+    // // ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
     // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
-    // // if(bezier_flag==0)
-    // //     ROS_INFO("bezier traj generation success!!!");
-    // // else
-    // //     ROS_INFO("bezier traj generation failed!!!");    
+    // if(bezier_flag==0)
+    //     ROS_INFO("bezier traj generation success!!!");
+    // else
+    //     ROS_INFO("bezier traj generation failed!!!");    
     // ros::Time time_bezier_end=ros::Time::now();
     // ROS_WARN("bezier traj generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
 
     // visWayPointTraj_besier(corridor_time);
-    _corridor->cubes.clear();
+    _corridor2->cubes.clear();
 
 
     
 
 
-    //MatrixXd waypoints(wp_list.size() + 1, 3);
-    //waypoints.row(0) = _startPos;
-    MatrixXd waypoints(wp_list.size(), 3);
-    //for(int k = 0; k < (int)wp_list.size(); k++)
-    //    waypoints.row(k+1) = wp_list[k];
-    for(int k = 0; k < (int)wp_list.size(); k++)
-        waypoints.row(k) = wp_list[k];
+    // //MatrixXd waypoints(wp_list.size() + 1, 3);
+    // //waypoints.row(0) = _startPos;
+    // MatrixXd waypoints(wp_list.size(), 3);
+    // //for(int k = 0; k < (int)wp_list.size(); k++)
+    // //    waypoints.row(k+1) = wp_list[k];
+    // for(int k = 0; k < (int)wp_list.size(); k++)
+    //     waypoints.row(k) = wp_list[k];
     
-    //Trajectory generation: use minimum snap trajectory generation method
-    //waypoints is the result of path planning (Manual in this homework)
+    // //Trajectory generation: use minimum snap trajectory generation method
+    // //waypoints is the result of path planning (Manual in this homework)
     
     
-    // trajGeneration(waypoints,0);
-    //化简后的结点。
+    // // trajGeneration(waypoints,0);
+    // //化简后的结点。
 }
 
 
@@ -457,6 +461,7 @@ int main(int argc, char** argv)
     _max_z_id = (int)(_z_size * _inv_resolution);
     _trajGene-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     _corridor-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
+    _corridor2-> initGridMap(_resolution, _map_lower, _map_upper, _max_x_id, _max_y_id, _max_z_id);
     
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -800,7 +805,7 @@ nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
 }
 
 
-void visCorridor(int flag)
+void visCorridor(FlightCorridor* cor,int flag)
 {   
     visualization_msgs::Marker node_vis; 
     node_vis.header.frame_id = "world";
@@ -847,17 +852,17 @@ void visCorridor(int flag)
     node_vis.scale.z = _resolution;
     geometry_msgs::Point pt;
 
-    ROS_INFO("_corridor  size=%d ",_corridor->cubes.size());
-    for(int i = 0; i < int(_corridor->cubes.size()); i++)
+    ROS_INFO("_corridor  size=%d ",cor->cubes.size());
+    for(int i = 0; i < int(cor->cubes.size()); i++)
     {
-        FlightCube cube=_corridor->cubes[i];
+        FlightCube cube=cor->cubes[i];
         for (int i=cube.start_node->index[0]-cube.x_neg_int;i<=cube.start_node->index[0]+cube.x_pos_int;i++)
             for (int j=cube.start_node->index[1]-cube.y_neg_int;j<=cube.start_node->index[1]+cube.y_pos_int;j++)
                 for (int k=cube.start_node->index[2]-cube.z_neg_int;k<=cube.start_node->index[2]+cube.z_pos_int;k++)
                 {
                     // ROS_INFO("i=%d  j=%d   k=%d ",i,j,k);
                     Vector3i index(i,j,k);
-                    Vector3d coord = _corridor->gridIndex2coord(index);
+                    Vector3d coord = cor->gridIndex2coord(index);
                     pt.x = coord(0);
                     pt.y = coord(1);
                     pt.z = coord(2);

@@ -216,11 +216,11 @@ void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
     Vector3d current_pt(pos_msg.points[0].x,pos_msg.points[0].y,pos_msg.points[0].z);
     _start_pt=current_pt;
 
-     Vector3d offset(2,2,2);
+     Vector3d offset(1,1,2);
     Vector3d target=_astar_path_finder->target_point_generator(_start_pt,offset);
     
-    ROS_INFO("FRONT DRONE POS = %f  %f  %f  A*",_start_pt(0),_start_pt(1),_start_pt(2));
-    ROS_INFO("TARGET DRONE POS = %f  %f  %f",target(0),target(1),target(2));
+    // ROS_INFO("FRONT DRONE POS = %f  %f  %f  A*",_start_pt(0),_start_pt(1),_start_pt(2));
+    // ROS_INFO("TARGET DRONE POS = %f  %f  %f",target(0),target(1),target(2));
 
     vector<Vector3d> temp_v;
     temp_v.push_back(target);
@@ -229,8 +229,15 @@ void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
 
     static int count=0;
     count++;
-    if(count%5==0)
-        pathFinding(_back_drone_pos,target,2);
+    static ros::Time time_1 = ros::Time::now();
+    if(count%10==0)
+        {
+            ros::Time time_2 = ros::Time::now();
+            ROS_WARN("time passed %f ms", (time_2 - time_1).toSec() * 1000.0);
+            time_1=time_2;
+            pathFinding(_back_drone_pos,target,2);
+        }
+        
 }
 
 

@@ -965,11 +965,20 @@ Vector3d AstarPathFinder::target_point_generator(Vector3d front_drone_pos,Vector
     {
         Vector3d target=front_drone_pos+offset;
         Vector3i target_grid=coord2gridIndex(target);
-        if(!isOccupied(target_grid))
+        int collision_flag=0;
+        for (int i=-1;i<=1;i++)
+            for (int j=-1;j<=1;j++)
+                for (int k=-1;k<=1;k++)
+                    if(isOccupied(target_grid(0)+i,target_grid(1)+j,target_grid(2)+k))
+                    {
+                        collision_flag=1;
+                        break;
+                    }
+        if(collision_flag==0)         
             return target;
         offset=R*offset;
-        ROS_INFO("collision!   grid=%d  %d  %d   offset=%f %f %f",target_grid(0),target_grid(1),target_grid(2),
-        offset(0),offset(1),offset(2));
+        // ROS_INFO("collision!   grid=%d  %d  %d   offset=%f %f %f",target_grid(0),target_grid(1),target_grid(2),
+        // offset(0),offset(1),offset(2));
         
         // cout<<offset;
     }
