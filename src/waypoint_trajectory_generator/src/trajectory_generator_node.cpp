@@ -187,7 +187,9 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     visCorridor();
     //ROS_INFO("000000!");
     ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
+    Vector3d a(0,0,0);
+    Vector3d v(0,0,0); 
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time,v,a);
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
     // else
