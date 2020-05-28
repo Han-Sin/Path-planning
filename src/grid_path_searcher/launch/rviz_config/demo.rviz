@@ -122,7 +122,7 @@ Visualization Manager:
 
 #----------------------------------------------搜索路径可视化----------------------------------------------
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/grid_path_vis
       Name: gridPath_astar
       Namespaces:
@@ -131,7 +131,7 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/grid_path_vis_jps
       Name: gridPath_jps
       Namespaces:
@@ -140,7 +140,7 @@ Visualization Manager:
       Value: true
 
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /demo_node/grid_path_vis_rrt
       Name: gridPath_rrt
       Namespaces:
@@ -150,7 +150,7 @@ Visualization Manager:
 
     #走廊
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_corridor
       Name: corridor
       Namespaces:
@@ -160,7 +160,7 @@ Visualization Manager:
 
     #走廊
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_corridor2
       Name: corridor2
       Namespaces:
@@ -197,9 +197,19 @@ Visualization Manager:
       Queue Size: 100
       Value: true
 
-      #迭代后的轨迹
+      #贝塞尔轨迹
     - Class: rviz/Marker
       Enabled: true
+      Marker Topic: /trajectory_generator_node/vis_trajectory_besier2
+      Name: Besier_Path2
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+
+      #迭代后的轨迹
+    - Class: rviz/Marker
+      Enabled: false
       Marker Topic: /trajectory_generator_node/vis_trajectory
       Name: Iterated_Path
       Namespaces:

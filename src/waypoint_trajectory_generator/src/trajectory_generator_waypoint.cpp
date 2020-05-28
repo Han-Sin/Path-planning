@@ -1046,7 +1046,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     // Turn Off/On the print of the solving process
     // s->monitorSelf();
     int ierr = s->solve(prob, vars, resid);
-    // ROS_INFO("ierr   %d",ierr);
+    ROS_INFO("ierr   %d",ierr);
     if( ierr == 0 ) 
     {
         double d_var[nx];
@@ -1080,10 +1080,11 @@ int BezierTrajOptimizer::bezierCurveGeneration(
             for(int j = 0; j < all_vars_number; j++)
                 {
                     PolyCoeff(i , j) = d_var[j + var_shift];
-                    // cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;;
+                    // cout<<"coeff in is  "<<PolyCoeff(i , j)<<"i="<<i<<"  j="<<j<<endl;
                 }
             var_shift += all_vars_number;     
-        }   
+        } 
+
     } 
     else if( ierr == 3)
         cout << "The program is provably infeasible, check the formulation.\n";

@@ -230,7 +230,7 @@ void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
     static int count=0;
     count++;
     static ros::Time time_1 = ros::Time::now();
-    if(count%10==0)
+    if(count%20==0)
         {
             ros::Time time_2 = ros::Time::now();
             ROS_WARN("time passed %f ms", (time_2 - time_1).toSec() * 1000.0);

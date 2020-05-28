@@ -33,6 +33,8 @@ using namespace Eigen;
     Vector3d  Start_point;
     Vector3d  End_point;
     BezierTrajOptimizer Beziertraj(7);     
+    Vector3d _last_vel(0,0,0);
+    Vector3d _last_acc(0,0,0);
 // Set the obstacle map
     double _resolution, _inv_resolution;
     double _x_size, _y_size, _z_size;
@@ -45,7 +47,8 @@ using namespace Eigen;
 
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
-    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub, _wp_path_vis_pub,  _vel_pub,_acc_pub,
+    ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub,
+    _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,
     _corridor_pub,_corridor_pub2,_points_pub;
 
 // for planning
@@ -57,7 +60,7 @@ using namespace Eigen;
 
 // declare
     void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag);
-    void visWayPointTraj_besier( VectorXd time);
+    void visWayPointTraj_besier( VectorXd time,int flag);
     void visWayPointPath(MatrixXd path);
     Vector3d getPosPoly( MatrixXd polyCoeff, int k, double t );
 	Vector3d getVelocity(MatrixXd polyCoeff, int k, double t);
@@ -201,7 +204,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     ros::Time time_bezier_end=ros::Time::now();
     ROS_WARN("bezier traj generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
 
-    visWayPointTraj_besier(corridor_time);
+    visWayPointTraj_besier(corridor_time,1);
     _corridor->cubes.clear();
 
 
@@ -250,7 +253,10 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     {
         count2++;
         if(count2>100)
+        {
             ROS_INFO("%d",count2);
+            break;
+        }
         GridNodePtr start_node=new GridNode(_corridor2->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
         for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
         {
@@ -292,15 +298,22 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     visCorridor(_corridor2,2);
     // // //ROS_INFO("000000!");
     // // ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
-    // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time);
+    Vector3d a(0,0,0);
+    Vector3d v(0,0,0); 
+    if (corridor_time.size()==1){//TRICK!!!
+        corridor_time(0) = corridor_time(0)*2;
+    }
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,100,100,Start_point,End_point,corridor_time,_last_vel,_last_acc);
+    ROS_INFO("start_p=%f %f   end_p=%f  %f",Start_point(0),Start_point(1),End_point(0),End_point(1));
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
     // else
     //     ROS_INFO("bezier traj generation failed!!!");    
-    // ros::Time time_bezier_end=ros::Time::now();
-    // ROS_WARN("bezier traj generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
+    ros::Time time_bezier_end=ros::Time::now();
+    ROS_WARN("bezier traj2 generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
 
-    // visWayPointTraj_besier(corridor_time);
+    visWayPointTraj_besier(corridor_time,2);
+
     _corridor2->cubes.clear();
 
 
@@ -452,8 +465,10 @@ int main(int argc, char** argv)
     _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
     _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
     _wp_traj_besier_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier", 1);
+    _wp_traj_besier_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier2", 1);
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
+    _vel_pub2 =         nh.advertise<nav_msgs::Path>("vel2",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
     _corridor_pub =    nh.advertise<visualization_msgs::Marker>("vis_corridor",1);
     _corridor_pub2 =    nh.advertise<visualization_msgs::Marker>("vis_corridor2",1);
@@ -538,6 +553,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
     vector<Vector3d> vel_pub;
     vector<Vector3d> acc_pub;
 
+
     for(int i = 0; i < time.size(); i++ )
     {   
         for (double t = 0.0; t < time(i); t += 0.01, count += 1)
@@ -574,7 +590,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 }
 
 
-void visWayPointTraj_besier( VectorXd time)
+void visWayPointTraj_besier( VectorXd time,int flag)
 {        
     visualization_msgs::Marker _traj_vis;
     _traj_vis.header.stamp       = ros::Time::now();
@@ -597,10 +613,26 @@ void visWayPointTraj_besier( VectorXd time)
     _traj_vis.pose.orientation.w = 1.0;
 
 
-    _traj_vis.color.a = 1.0;
-    _traj_vis.color.r = 1.0;
-    _traj_vis.color.g = 0.0;
-    _traj_vis.color.b = 0.0;
+    if(flag==1)
+    {
+        _traj_vis.color.a = 1.0;
+        _traj_vis.color.r = 1.0;
+        _traj_vis.color.g = 0.0;
+        _traj_vis.color.b = 0.0;
+
+    }
+
+    else if(flag==2)
+    {
+    // {   double a=(double)2.0;
+        _traj_vis.color.a = 1.0;
+        _traj_vis.color.r = (double)(random()%100/100.0);
+        _traj_vis.color.g = (double)(random()%100/100.0);
+        _traj_vis.color.b = (double)(random()%100/100.0);
+        ROS_INFO("%d   %f",random(),_traj_vis.color.r);
+
+    }
+
 
 
     double traj_len = 0.0;
@@ -616,6 +648,7 @@ void visWayPointTraj_besier( VectorXd time)
     vector<Vector3d> vel_pub;
     vector<Vector3d> acc_pub;
 
+
     for(int i = 0; i < time.size(); i++ )
     {   
         for (double t = 0.0; t < time(i); t += 0.01, count += 1)
@@ -627,6 +660,15 @@ void visWayPointTraj_besier( VectorXd time)
             //     acc_pub.push_back(acc);
             // }
             Vector3d vel = Beziertraj.getVelFromBezier(t,i);
+            Vector3d acc = Beziertraj.getAccFromBezier(t,i);
+
+            if(flag==2&&count==17)
+            {
+                _last_acc=acc;
+                _last_vel=vel;
+            }
+                
+
             vel_pub.push_back(vel);
 
             pos = Beziertraj.getPosFromBezier(t,i);
@@ -640,10 +682,18 @@ void visWayPointTraj_besier( VectorXd time)
     }
     ROS_INFO_STREAM("optimizer traj success, the length is "<<traj_len);
 
-    //迭代后的轨迹
-    _wp_traj_besier_vis_pub.publish(_traj_vis);
-    _vel_pub.publish(vector3d_to_waypoints(vel_pub));
-    // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+    if(flag==1)
+    {
+        //迭代后的轨迹
+        _wp_traj_besier_vis_pub.publish(_traj_vis);
+        _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+        // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+    }
+    else if(flag==2)
+    {
+        _wp_traj_besier_vis_pub2.publish(_traj_vis);
+        _vel_pub2.publish(vector3d_to_waypoints(vel_pub));
+    }
 
 }
 
