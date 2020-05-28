@@ -74,11 +74,21 @@ ros::Publisher turtle_vel;
 using namespace Eigen;
 using namespace std;
 
+nav_msgs::Path _vel;
+int update_vel_flag=0;//路径更新标志位
+int begin_control_flag=0;//控制飞机标志位
 
 
 void rcvVelCallBack(nav_msgs::Path vel)
 {
-        // vector<Vector3d> drone_pos;
+        _vel=vel;
+        update_vel_flag=1;
+}
+
+
+void Front_Drone_Control(int &i)
+{
+    // vector<Vector3d> drone_pos;
         // drone_pos.push_back(_start_pt);
         // ROS_INFO("start_x=%f",drone_pos[0](0));
         // visVisitedNode(drone_pos);
@@ -89,34 +99,43 @@ void rcvVelCallBack(nav_msgs::Path vel)
             pos_init_flag=0;
         }
 
-        for (int i=0;i<vel.poses.size();i++)
+        if(update_vel_flag==1)
         {
-            double t_frequency=100;
-            double t_gap=1/t_frequency;
-            double v_x=vel.poses[i].pose.position.x;
-            double v_y=vel.poses[i].pose.position.y;
-            double v_z=vel.poses[i].pose.position.z;
-            double v_mod=sqrt(v_x*v_x+v_y*v_y+v_z*v_z);
-
-            current_pos[0]+=v_x*t_gap;
-            current_pos[1]+=v_y*t_gap;
-            current_pos[2]+=v_z*t_gap;
-            
-            vector<Vector3d> drone_pos;
-            drone_pos.push_back(current_pos);
-            visVisitedNode(drone_pos,1);
-            x_target=current_pos[0];
-            y_target=current_pos[1];
-
-            Drone_control();
-
-            ros::Rate rate(100);
-            rate.sleep();
+            update_vel_flag=0;
+            i=0;
         }
+
+        double t_frequency=100;
+        double t_gap=1/t_frequency;
+        double v_x=_vel.poses[i].pose.position.x;
+        double v_y=_vel.poses[i].pose.position.y;
+        double v_z=_vel.poses[i].pose.position.z;
+        double v_mod=sqrt(v_x*v_x+v_y*v_y+v_z*v_z);
+
+        current_pos[0]+=v_x*t_gap;
+        current_pos[1]+=v_y*t_gap;
+        current_pos[2]+=v_z*t_gap;
+        
+        vector<Vector3d> drone_pos;
+        drone_pos.push_back(current_pos);
+        visVisitedNode(drone_pos,1);
+        x_target=current_pos[0];
+        y_target=current_pos[1];
+
+        // Back_Drone_control();
+
+        ros::Rate rate(100);
+        rate.sleep();
+
+        i++;
+        if(i>=_vel.poses.size())
+        {
+            begin_control_flag=0;
+            i=0;
+        }
+
+
 }
-
-
-
 
 
 
@@ -188,7 +207,7 @@ Matrix<double, 3, 3> rotate_matrix(double theta)
 }
 
 
-void Drone_control()
+void Back_Drone_control()
 {
 
     double d;                //目标与飞机的距离
@@ -365,10 +384,16 @@ int main(int argc, char** argv)
 
     // ros::AsyncSpinner spinner(4); // Use 4 threads
     
+    int i=0;
+
     while(status) 
     {
         ros::spinOnce();      
-        Drone_control();
+        Back_Drone_control();
+        if(update_vel_flag==1)
+            begin_control_flag=1;
+        if(begin_control_flag==1)
+            Front_Drone_Control(i);
         status = ros::ok();
         rate.sleep();
     }
