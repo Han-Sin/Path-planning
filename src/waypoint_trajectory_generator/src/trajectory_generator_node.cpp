@@ -46,7 +46,7 @@ using namespace Eigen;
     FlightCorridor* _corridor2                   = new FlightCorridor();
 
 // ros related
-    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub;
+    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub,_back_drone_v_a_sub;
     ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub,
     _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,
     _corridor_pub,_corridor_pub2,_points_pub;
@@ -258,25 +258,51 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
             break;
         }
         GridNodePtr start_node=new GridNode(_corridor2->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
-        for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
+
+        if(wp_list.size()==1)//解决终点起点重合的问题
         {
-            GridNodePtr end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
-            FlightCube temp_cube(start_node,end_node);
-            // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
-            if(_corridor2->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
+            check_order=0;
+            suc_flag=1;
+            // break;
+        }
+        else
+        {
+            for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
             {
-                suc_flag=1;
-                break;
-            }
-            else if(!_corridor2->check_cube_safe(temp_cube))
-                break;
-            else if(check_order==wp_list.size())
-            {
-                ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                GridNodePtr end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+                FlightCube temp_cube(start_node,end_node);
+                // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
+                int safe_flag=_corridor2->check_cube_safe(temp_cube);
+                // ROS_INFO("check one cube   safe_flag=%d",safe_flag);
+                if(safe_flag&&check_order==wp_list.size()-1)
+                {
+                    // ROS_INFO("break because of success!");
+                    suc_flag=1;
+                    break;
+                }
+                else if(!safe_flag)
+                {
+                    // ROS_INFO("break because of collision!");
+                    break;
+                }
+
+                else if(check_order==wp_list.size())
+                {
+                    ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                }
             }
         }
         
-        // ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
+
+        
+        ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
+        // if(last_node_order==check_order-1)
+        // {
+        //     ROS_WARN("dead loop!!!!!!!!!!!!!");
+        //     // GridNodePtr end_node=new GridNode(_corridor2->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+        //     // FlightCube temp_cube(start_node,end_node);
+        //     // _corridor2->set_safe_force(temp_cube);
+        // }
 
         GridNodePtr end_node;
         if(suc_flag)
@@ -286,7 +312,7 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
         FlightCube temp_cube(start_node,end_node);
         _corridor2->expand_cube(temp_cube);
         _corridor2->update_attributes(temp_cube);
-        // temp_cube.Display();
+        temp_cube.Display();
         _corridor2->cubes.push_back(temp_cube);
         last_node_order=check_order-1;
         if(suc_flag)
@@ -303,7 +329,8 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     if (corridor_time.size()==1){//TRICK!!!
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,100,100,Start_point,End_point,corridor_time,_last_vel,_last_acc);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,1000000000,100000000,Start_point,End_point,corridor_time,_last_vel,_last_acc);
+    // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,100,100,Start_point,End_point,corridor_time,v,a);
     ROS_INFO("start_p=%f %f   end_p=%f  %f",Start_point(0),Start_point(1),End_point(0),End_point(1));
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
@@ -431,6 +458,24 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
 
 }
 
+
+void rcvBackDroneVACallback(const nav_msgs::Path & wp)
+{
+    if (wp.poses.size()!=2)
+    {
+        ROS_WARN("Invalid v a!!!");
+    }
+    else
+    {
+        _last_vel<<wp.poses[0].pose.position.x,wp.poses[0].pose.position.y,wp.poses[0].pose.position.z;
+        _last_acc<<wp.poses[1].pose.position.x,wp.poses[1].pose.position.y,wp.poses[1].pose.position.z;
+    }
+    
+
+
+}
+
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "traj_node");
@@ -459,6 +504,8 @@ int main(int argc, char** argv)
     _way_pts_sub     = nh.subscribe( "/demo_node/grid_path", 1, rcvWaypointsCallBack );
     _way_pts_sub2     = nh.subscribe( "/demo_node/simplified_waypoints", 1, rcvMinSnapCallBack );
     _way_pts_sub3     = nh.subscribe( "/demo_node/grid_path2", 1, rcvWaypointsCallBack2 );
+
+    _back_drone_v_a_sub = nh.subscribe( "/drone_node/back_drone_v_a", 1, rcvBackDroneVACallback );
     // _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
     // _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
 
@@ -626,10 +673,13 @@ void visWayPointTraj_besier( VectorXd time,int flag)
     {
     // {   double a=(double)2.0;
         _traj_vis.color.a = 1.0;
-        _traj_vis.color.r = (double)(random()%100/100.0);
-        _traj_vis.color.g = (double)(random()%100/100.0);
-        _traj_vis.color.b = (double)(random()%100/100.0);
-        ROS_INFO("%d   %f",random(),_traj_vis.color.r);
+        _traj_vis.color.r = 0.0;
+        _traj_vis.color.g = 0.0;
+        _traj_vis.color.b = 1.0;
+        // _traj_vis.color.r = (double)(random()%100/100.0);
+        // _traj_vis.color.g = (double)(random()%100/100.0);
+        // _traj_vis.color.b = (double)(random()%100/100.0);
+        // ROS_INFO("%d   %f",random(),_traj_vis.color.r);
 
     }
 
@@ -662,11 +712,11 @@ void visWayPointTraj_besier( VectorXd time,int flag)
             Vector3d vel = Beziertraj.getVelFromBezier(t,i);
             Vector3d acc = Beziertraj.getAccFromBezier(t,i);
 
-            if(flag==2&&count==17)
-            {
-                _last_acc=acc;
-                _last_vel=vel;
-            }
+            // if(flag==2&&count==17)
+            // {
+            //     _last_acc=acc;
+            //     _last_vel=vel;
+            // }
                 
 
             vel_pub.push_back(vel);

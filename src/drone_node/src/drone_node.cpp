@@ -37,7 +37,7 @@ bool _has_map   = false;
 
 // ros related
 ros::Subscriber vel_sub,vel_sub2,pos_sub;
-ros::Publisher  drone_pos_pub,drone2_pos_pub;
+ros::Publisher  drone_pos_pub,drone2_pos_pub,v_a_pub;
 void visVisitedNode( vector<Vector3d> nodes ,int flag);
 
 bool pos_init_flag=1;
@@ -149,6 +149,27 @@ void Front_Drone_Control(int &i)
 }
 
 
+
+nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
+{
+    nav_msgs::Path waypoints;
+    geometry_msgs::PoseStamped pt;
+
+    for (auto ptr: path)
+    {
+        pt.pose.position.y =  ptr(1);
+        pt.pose.position.x =  ptr(0);
+        pt.pose.position.z =  ptr(2);
+        waypoints.poses.push_back(pt);//维护waypoints
+    }
+    return waypoints;
+}
+
+
+double last_v_x_back=0;
+double last_v_y_back=0;
+double last_v_z_back=0;
+
 void Back_Drone_Control2(int &i)
 {
     // vector<Vector3d> drone_pos;
@@ -173,6 +194,24 @@ void Back_Drone_Control2(int &i)
         back_drone_pos[0]+=v_x*t_gap;
         back_drone_pos[1]+=v_y*t_gap;
         back_drone_pos[2]+=v_z*t_gap;
+
+        double a_x=(v_x-last_v_x_back)/t_gap;
+        double a_y=(v_y-last_v_y_back)/t_gap;
+        double a_z=(v_z-last_v_z_back)/t_gap;
+
+        last_v_x_back=v_x;
+        last_v_y_back=v_y;
+        last_v_z_back=v_z;
+
+        vector<Vector3d> v_a_msg;
+        Vector3d v_msg(v_x,v_y,v_z);
+        Vector3d a_msg(a_x,a_y,a_z);
+        v_a_msg.push_back(v_msg);
+        v_a_msg.push_back(a_msg);
+        v_a_pub.publish(vector3d_to_waypoints(v_a_msg));
+        
+
+
         
         vector<Vector3d> drone_pos;
         drone_pos.push_back(back_drone_pos);
@@ -437,6 +476,7 @@ int main(int argc, char** argv)
     // pos_sub  = nh.subscribe( "/trajectory_generator_node/vis_trajectory_besier",       1, rcvPosCallBack );//注释则关闭飞机运动
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
     drone2_pos_pub    = nh.advertise<visualization_msgs::Marker>("drone2_pos",50);
+    v_a_pub           = nh.advertise<nav_msgs::Path>("back_drone_v_a",50);
     ros::Rate rate(100);
     bool status = ros::ok();
 

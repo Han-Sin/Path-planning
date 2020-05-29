@@ -142,11 +142,15 @@ public:
 
   void Display()
   {
-    ROS_INFO("start_node_x_int=%d   y_int=%d   z_int=%d     x_pos_int=%d  y_pos_int=%d  z_pos_int=%d  x_neg_int=%d  y_neg_int=%d  z_neg_int=%d",
-    start_node->index[0],start_node->index[1],start_node->index[2],x_pos_int,y_pos_int,z_pos_int,x_neg_int,y_neg_int,z_neg_int);
+    // ROS_INFO("start_node_x_int=%d   y_int=%d   z_int=%d     x_pos_int=%d  y_pos_int=%d  z_pos_int=%d  x_neg_int=%d  y_neg_int=%d  z_neg_int=%d",
+    // start_node->index[0],start_node->index[1],start_node->index[2],x_pos_int,y_pos_int,z_pos_int,x_neg_int,y_neg_int,z_neg_int);
 
     ROS_INFO("start_node_x=%f   y=%f  z=%f     x_pos=%f  y_pos=%f  z_pos=%f  x_neg=%f  y_neg=%f  z_neg=%f",
     start_node->coord[0],start_node->coord[1],start_node->coord[2],x_pos,y_pos,z_pos,x_neg,y_neg,z_neg);
+
+    ROS_INFO("end_node_x=%f   y=%f  z=%f     x_pos=%f  y_pos=%f  z_pos=%f  x_neg=%f  y_neg=%f  z_neg=%f",
+    end_node->coord[0],end_node->coord[1],end_node->coord[2],x_pos,y_pos,z_pos,x_neg,y_neg,z_neg);
+
 
 
     for (int i=0;i<6;i++)
@@ -169,6 +173,8 @@ public:
   FlightCube expand_cube(FlightCube &cube);
 
   void update_attributes(FlightCube &cube);
+
+  void set_safe_force(FlightCube &cube);
 
 };
 

@@ -375,11 +375,29 @@ bool FlightCorridor::check_cube_safe(FlightCube cube)
       for (int k=cube.start_node->index[2]-cube.z_neg_int;k<=cube.start_node->index[2]+cube.z_pos_int;k++)
       {
         if (isOccupied(i,j,k))
-          return 0;
+        {
+            // ROS_INFO("collision with  %d  %d  %d     start_node_x=%d",i,j,k,cube.start_node->index[0]);
+            return 0;
+        }
       }
   return 1;
 }
 
+
+void FlightCorridor::set_safe_force(FlightCube &cube)
+{
+    //   return isOccupied(1,1,1);
+  for (int i=cube.start_node->index[0]-cube.x_neg_int;i<=cube.start_node->index[0]+cube.x_pos_int;i++)
+    for (int j=cube.start_node->index[1]-cube.y_neg_int;j<=cube.start_node->index[1]+cube.y_pos_int;j++)
+      for (int k=cube.start_node->index[2]-cube.z_neg_int;k<=cube.start_node->index[2]+cube.z_pos_int;k++)
+      {
+          if (isOccupied(i,j,k))
+          {
+            data[i * GLYZ_SIZE + j * GLZ_SIZE + k]=0;
+            ROS_INFO("setting %d %d %d safe!!!",i,j,k);
+          }
+      }
+}
 
 FlightCube FlightCorridor::expand_cube(FlightCube &cube)
 {
