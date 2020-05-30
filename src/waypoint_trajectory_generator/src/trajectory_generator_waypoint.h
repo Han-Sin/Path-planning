@@ -244,7 +244,9 @@ class BezierTrajOptimizer
         Eigen::Vector3d end_pos,
         Eigen::VectorXd time,
         Eigen::Vector3d start_vel,
-        Eigen::Vector3d start_acc
+        Eigen::Vector3d start_acc,
+        Eigen::Vector3d end_vel,
+        Eigen::Vector3d end_acc
         );
         
         Eigen::MatrixXd getQ(const int vars_number, const vector<double> Time, const int seg_index);

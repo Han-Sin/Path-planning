@@ -37,8 +37,10 @@ bool _has_map   = false;
 
 // ros related
 ros::Subscriber vel_sub,vel_sub2,pos_sub;
-ros::Publisher  drone_pos_pub,drone2_pos_pub,v_a_pub;
+ros::Publisher  drone_pos_pub,drone2_pos_pub,v_a_pub,v_a_pub_front;
 void visVisitedNode( vector<Vector3d> nodes ,int flag);
+nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
+
 
 bool pos_init_flag=1;
 Vector3d current_pos;
@@ -96,13 +98,33 @@ void rcvVelCallBack2(nav_msgs::Path vel)
         update_vel_flag2=1;
 }
 
+double last_v_x_front=0;
+double last_v_y_front=0;
+double last_v_z_front=0;
 
-void Front_Drone_Control(int &i)
+
+void Front_Drone_Control(int &i,int flag)
 {
     // vector<Vector3d> drone_pos;
         // drone_pos.push_back(_start_pt);
         // ROS_INFO("start_x=%f",drone_pos[0](0));
         // visVisitedNode(drone_pos);
+        if(flag==0)
+        {
+            vector<Vector3d> drone_pos;
+            drone_pos.push_back(current_pos);
+            visVisitedNode(drone_pos,1);
+
+
+            vector<Vector3d> v_a_msg;
+            Vector3d v_msg(0,0,0);
+            Vector3d a_msg(0,0,0);
+            v_a_msg.push_back(v_msg);
+            v_a_msg.push_back(a_msg);
+            v_a_pub_front.publish(vector3d_to_waypoints(v_a_msg));
+            return;
+        }
+
 
         if(pos_init_flag)
         {
@@ -132,6 +154,22 @@ void Front_Drone_Control(int &i)
         visVisitedNode(drone_pos,1);
         x_target=current_pos[0];
         y_target=current_pos[1];
+
+
+        double a_x=(v_x-last_v_x_front)/t_gap;
+        double a_y=(v_y-last_v_y_front)/t_gap;
+        double a_z=(v_z-last_v_z_front)/t_gap;
+
+        last_v_x_front=v_x;
+        last_v_y_front=v_y;
+        last_v_z_front=v_z;
+
+        vector<Vector3d> v_a_msg;
+        Vector3d v_msg(v_x,v_y,v_z);
+        Vector3d a_msg(a_x,a_y,a_z);
+        v_a_msg.push_back(v_msg);
+        v_a_msg.push_back(a_msg);
+        v_a_pub_front.publish(vector3d_to_waypoints(v_a_msg));
 
         // Back_Drone_control();
 
@@ -477,6 +515,7 @@ int main(int argc, char** argv)
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
     drone2_pos_pub    = nh.advertise<visualization_msgs::Marker>("drone2_pos",50);
     v_a_pub           = nh.advertise<nav_msgs::Path>("back_drone_v_a",50);
+    v_a_pub_front           = nh.advertise<nav_msgs::Path>("front_drone_v_a",50);
     ros::Rate rate(100);
     bool status = ros::ok();
 
@@ -491,8 +530,7 @@ int main(int argc, char** argv)
         // Back_Drone_control();
         if(update_vel_flag==1)
             begin_control_flag=1;
-        if(begin_control_flag==1)
-            Front_Drone_Control(i);
+        Front_Drone_Control(i,begin_control_flag);
 
         if(update_vel_flag2==1)
             begin_control_flag2=1;

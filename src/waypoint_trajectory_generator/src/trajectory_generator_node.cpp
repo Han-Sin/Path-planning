@@ -35,6 +35,8 @@ using namespace Eigen;
     BezierTrajOptimizer Beziertraj(7);     
     Vector3d _last_vel(0,0,0);
     Vector3d _last_acc(0,0,0);
+    Vector3d _last_vel_front(0,0,0);
+    Vector3d _last_acc_front(0,0,0);
 // Set the obstacle map
     double _resolution, _inv_resolution;
     double _x_size, _y_size, _z_size;
@@ -46,7 +48,7 @@ using namespace Eigen;
     FlightCorridor* _corridor2                   = new FlightCorridor();
 
 // ros related
-    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub,_back_drone_v_a_sub;
+    ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub,_back_drone_v_a_sub,_front_drone_v_a_sub;
     ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub,
     _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,
     _corridor_pub,_corridor_pub2,_points_pub;
@@ -196,7 +198,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     if (corridor_time.size()==1){
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time,v,a);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time,v,a,v,a);
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
     // else
@@ -329,7 +331,14 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     if (corridor_time.size()==1){//TRICK!!!
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,1000000000,100000000,Start_point,End_point,corridor_time,_last_vel,_last_acc);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,10,10,
+    Start_point,End_point,corridor_time,_last_vel,_last_acc,v,a);
+
+    // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,1000000000,100000000,
+    // Start_point,End_point,corridor_time,_last_vel,_last_acc,_last_vel_front,a);
+    // cout<<"vel="<<_last_vel_front<<endl;
+    // cout<<"acc="<<_last_acc_front<<endl;
+
     // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,100,100,Start_point,End_point,corridor_time,v,a);
     ROS_INFO("start_p=%f %f   end_p=%f  %f",Start_point(0),Start_point(1),End_point(0),End_point(1));
     // if(bezier_flag==0)
@@ -476,6 +485,21 @@ void rcvBackDroneVACallback(const nav_msgs::Path & wp)
 }
 
 
+void rcvFrontDroneVACallback(const nav_msgs::Path & wp)
+{
+    if (wp.poses.size()!=2)
+    {
+        ROS_WARN("Invalid v a!!!");
+    }
+    else
+    {
+        _last_vel_front<<wp.poses[0].pose.position.x,wp.poses[0].pose.position.y,wp.poses[0].pose.position.z;
+        _last_acc_front<<wp.poses[1].pose.position.x,wp.poses[1].pose.position.y,wp.poses[1].pose.position.z;
+    }
+    
+}
+
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "traj_node");
@@ -506,6 +530,7 @@ int main(int argc, char** argv)
     _way_pts_sub3     = nh.subscribe( "/demo_node/grid_path2", 1, rcvWaypointsCallBack2 );
 
     _back_drone_v_a_sub = nh.subscribe( "/drone_node/back_drone_v_a", 1, rcvBackDroneVACallback );
+    _front_drone_v_a_sub = nh.subscribe( "/drone_node/front_drone_v_a", 1, rcvFrontDroneVACallback );
     // _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
     // _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
 

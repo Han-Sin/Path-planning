@@ -579,7 +579,9 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     Vector3d end_pos,
     VectorXd time,
     Vector3d start_vel,
-    Vector3d start_acc
+    Vector3d start_acc,
+    Vector3d end_vel,
+    Vector3d end_acc
     )
 {   
     //ROS_INFO("zheli!!!!!!");
@@ -651,8 +653,8 @@ int BezierTrajOptimizer::bezierCurveGeneration(
         else if (i >= 3  && i < 6  ) beq_i = start_vel(i-3);//v 
         else if (i >= 6  && i < 9  ) beq_i = start_acc(i-6);//a
         else if (i >= 9 && i < 12 ) beq_i = end_pos(i-9);//pend_pos(i)
-        else if (i >= 12 && i < 15 ) beq_i = 0;//end:v
-        else if (i >= 15 && i < 18 ) beq_i = 0;//end:a
+        else if (i >= 12 && i < 15 ) beq_i = end_vel(i-12);//end:v
+        else if (i >= 15 && i < 18 ) beq_i = end_acc(i-15);//end:a
         else beq_i = 0.0;//连续性约束
         b[i] = beq_i;
     }
