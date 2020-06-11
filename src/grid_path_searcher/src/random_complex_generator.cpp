@@ -6,9 +6,12 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/search/impl/kdtree.hpp>
-
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -25,21 +28,33 @@ ros::Publisher _all_map_pub;
 int _obs_num, _cir_num;
 double _x_size, _y_size, _z_size, _init_x, _init_y, _resolution, _sense_rate;
 double _x_l, _x_h, _y_l, _y_h, _w_l, _w_h, _h_l, _h_h, _w_c_l, _w_c_h;
-
+int dynamic;
+Eigen::Vector3d target;
+Eigen::Vector3d front_pos;
 bool _has_map  = false;
 
 sensor_msgs::PointCloud2 globalMap_pcd;
 pcl::PointCloud<pcl::PointXYZ> cloudMap;
-
+ros::Subscriber drone_pos_sub,target_sub;
 pcl::search::KdTree<pcl::PointXYZ> kdtreeMap;
 vector<int>     pointIdxSearch;
 vector<float>   pointSquaredDistance;      
-
+void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
+{
+   Vector3d current_pt(pos_msg.points[0].x,pos_msg.points[0].y,pos_msg.points[0].z);       
+   front_pos = current_pt;
+}
+void rcvTargetCallBack(const nav_msgs::Path & front_target){
+   target(0) = front_target.poses[0].pose.position.x;
+   target(1) = front_target.poses[0].pose.position.y;
+   target(2) = front_target.poses[0].pose.position.z;
+   //ROS_INFO_STREAM("get target!!!"<<target);
+}
 void RandomMapGenerate()
 {  
    random_device rd;
-   // default_random_engine eng(rd());
-   default_random_engine eng(1);
+   default_random_engine eng(rd());
+   //default_random_engine eng(1);
    
    uniform_real_distribution<double> rand_x = uniform_real_distribution<double>(_x_l, _x_h );
    uniform_real_distribution<double> rand_y = uniform_real_distribution<double>(_y_l, _y_h );
@@ -59,6 +74,8 @@ void RandomMapGenerate()
    pcl::PointXYZ pt_random;
 
    // firstly, we put some circles
+   cloudMap.points.clear();
+   //ROS_INFO_STREAM("AFSAF"<<cloudMap.points.size());
    for(int i = 0; i < _cir_num; i ++)
    {
       double x0, y0, z0, R;
@@ -109,6 +126,7 @@ void RandomMapGenerate()
              cos(gama)  * sin(alpha) + cos(alpha) * cos(beta) * sin(gama),   cos(alpha) * cos(beta) * cos(gama) - sin(alpha) * sin(gama), - cos(alpha) * sin(beta),        
              sin(beta)  * sin(gama),                                         cos(gama) * sin(beta),                                         cos(beta);
 
+      
       for(auto pt: circle_set)
       {
          pt3_rot = Rot * pt;
@@ -138,8 +156,9 @@ void RandomMapGenerate()
       // y=0;
       // w=2;
 
-      //if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 2.0 ) 
-      if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 0.8 ) 
+      //if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 2.0 ) STRA
+      //ROS_INFO_STREAM("targetx: "<<target(0)<<" targety: "<<target(1));
+      if(sqrt( pow(x - _init_x, 2) + pow(y - _init_y, 2) ) < 0.8||sqrt( pow(x - target(0), 2) + pow(y - target(1), 2) ) < 1||sqrt( pow(x - front_pos(0), 2) + pow(y - front_pos(1), 2) ) < 1 ) 
          continue;
       
       pcl::PointXYZ searchPoint(x, y, (_h_l + _h_h)/2.0);
@@ -180,7 +199,6 @@ void RandomMapGenerate()
    cloudMap.is_dense = true;
 
    _has_map = true;
-   
    pcl::toROSMsg(cloudMap, globalMap_pcd);
    globalMap_pcd.header.frame_id = "world";
 }
@@ -188,7 +206,6 @@ void RandomMapGenerate()
 void pubSensedPoints()
 {     
    if( !_has_map ) return;
-
    _all_map_pub.publish(globalMap_pcd);
 }
 
@@ -198,9 +215,13 @@ int main (int argc, char** argv)
    ros::NodeHandle n( "~" );
 
    _all_map_pub   = n.advertise<sensor_msgs::PointCloud2>("global_map", 1);                      
-
+   drone_pos_sub = n.subscribe("/drone_node/drone_pos",50,rcvDronePosCallBack);
+   target_sub = n.subscribe( "/demo_node/front_target", 50, rcvTargetCallBack);
+   front_pos<<0,0,0;
+   target<<0,0,0;
    n.param("init_state_x", _init_x,       0.0);
-   n.param("init_state_y", _init_y,       0.0);
+   n.param("init_state_y", _init_y,       0.0); 
+   n.param("init_dynamic",dynamic,0);
 
    n.param("map/x_size",  _x_size, 50.0);
    n.param("map/y_size",  _y_size, 50.0);
@@ -221,7 +242,7 @@ int main (int argc, char** argv)
    n.param("CircleShape/upper_circle_rad", _w_c_h, 0.8);
 
    n.param("sensing/rate", _sense_rate, 1.0);
-
+   _sense_rate=0.25;
    _x_l = - _x_size / 2.0;
    _x_h = + _x_size / 2.0;
 
@@ -230,10 +251,13 @@ int main (int argc, char** argv)
 
    RandomMapGenerate();
    ros::Rate loop_rate(_sense_rate);
+   //loop_rate.sleep(); 
+   //pubSensedPoints();
    while (ros::ok())
    {
+      ros::spinOnce();      
+      if(dynamic) RandomMapGenerate();
       pubSensedPoints();
-      ros::spinOnce();
       loop_rate.sleep();
    }
 }

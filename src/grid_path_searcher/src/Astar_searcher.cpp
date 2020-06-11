@@ -66,7 +66,10 @@ void AstarPathFinder::resetUsedGrids()
             for(int k=0; k < GLZ_SIZE ; k++)
                 resetGrid(GridNodeMap[i][j][k]);
 }
-
+void AstarPathFinder::resetObs(){
+    for(int i=0;i<GLXYZ_SIZE;i++)
+        data[i]=0;
+}
 void AstarPathFinder::setObs(const double coord_x, const double coord_y, const double coord_z)
 {
     if( coord_x < gl_xl  || coord_y < gl_yl  || coord_z <  gl_zl ||
@@ -961,34 +964,26 @@ Vector3d AstarPathFinder::target_point_generator(Vector3d front_drone_pos,Vector
         sin(theta),cos(theta),0,
         0,0,1;
 
-
     while(true)
     {
-        for (double scale=0.2;scale<1;scale+=0.1)
-        {
-            Vector3d off(offset(0)*scale,offset(1)*scale,2);
-            // cout<<"off="<<off(2)<<endl;
-            Vector3d target=front_drone_pos+off;
-            Vector3i target_grid=coord2gridIndex(target);
-            int collision_flag=0;
-            for (int i=-1;i<=1;i++)
-                for (int j=-1;j<=1;j++)
-                    for (int k=-1;k<=1;k++)
-                        if(isOccupied(target_grid(0)+i,target_grid(1)+j,target_grid(2)+k))
-                        {
-                            collision_flag=1;
-                            break;
-                        }
-            if(collision_flag==0)         
-                return target;
-
-            // ROS_INFO("collision!   grid=%d  %d  %d   offset=%f %f %f",target_grid(0),target_grid(1),target_grid(2),
-            // offset(0),offset(1),offset(2));
-            
-            // cout<<offset;
-        }
+        Vector3d target=front_drone_pos+offset;
+        Vector3i target_grid=coord2gridIndex(target);
+        int collision_flag=0;
+        for (int i=-1;i<=1;i++)
+            for (int j=-1;j<=1;j++)
+                for (int k=-1;k<=1;k++)
+                    if(isOccupied(target_grid(0)+i,target_grid(1)+j,target_grid(2)+k))
+                    {
+                        collision_flag=1;
+                        break;
+                    }
+        if(collision_flag==0)         
+            return target;
         offset=R*offset;
+        // ROS_INFO("collision!   grid=%d  %d  %d   offset=%f %f %f",target_grid(0),target_grid(1),target_grid(2),
+        // offset(0),offset(1),offset(2));
         
+        // cout<<offset;
     }
 
 }

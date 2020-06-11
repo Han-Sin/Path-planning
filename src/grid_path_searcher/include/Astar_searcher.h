@@ -57,15 +57,16 @@ class AstarPathFinder
 
         bool Nodes_if_in_Path(std::vector<Eigen::Vector3d> path,Eigen::Vector3d node);
 		
-		Eigen::Vector3d gridIndex2coord(const Eigen::Vector3i & index);
-		Eigen::Vector3i coord2gridIndex(const Eigen::Vector3d & pt);
-
+		
 	public:
 		AstarPathFinder(){};
 		~AstarPathFinder(){};
+		Eigen::Vector3d gridIndex2coord(const Eigen::Vector3i & index);
+		Eigen::Vector3i coord2gridIndex(const Eigen::Vector3d & pt);
 		void AstarGraphSearch(Eigen::Vector3d start_pt, Eigen::Vector3d end_pt);
 		void resetGrid(GridNodePtr ptr);
 		void resetUsedGrids();
+		void resetObs();
 
 		void initGridMap(double _resolution, Eigen::Vector3d global_xyz_l, Eigen::Vector3d global_xyz_u, int max_x_id, int max_y_id, int max_z_id);
 		void setObs(const double coord_x, const double coord_y, const double coord_z);

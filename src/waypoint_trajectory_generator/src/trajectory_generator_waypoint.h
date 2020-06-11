@@ -69,6 +69,7 @@ class TrajectoryGeneratorWaypoint {
                                                                   const int seg_num,
                                                                   const int d_order);
         void initGridMap(double _resolution, Eigen::Vector3d global_xyz_l, Eigen::Vector3d global_xyz_u, int max_x_id, int max_y_id, int max_z_id);
+        void resetObs();
 		    void setObs(const double coord_x, const double coord_y, const double coord_z);
         Eigen::Vector3d getPosPoly( Eigen::MatrixXd polyCoeff, int k, double t );
 		    int safeCheck( Eigen::MatrixXd polyCoeff, Eigen::VectorXd time);
@@ -244,9 +245,7 @@ class BezierTrajOptimizer
         Eigen::Vector3d end_pos,
         Eigen::VectorXd time,
         Eigen::Vector3d start_vel,
-        Eigen::Vector3d start_acc,
-        Eigen::Vector3d end_vel,
-        Eigen::Vector3d end_acc
+        Eigen::Vector3d start_acc
         );
         
         Eigen::MatrixXd getQ(const int vars_number, const vector<double> Time, const int seg_index);

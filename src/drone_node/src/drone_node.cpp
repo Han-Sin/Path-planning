@@ -36,11 +36,9 @@ int _max_x_id, _max_y_id, _max_z_id;
 bool _has_map   = false;
 
 // ros related
-ros::Subscriber vel_sub,vel_sub2,pos_sub;
-ros::Publisher  drone_pos_pub,drone2_pos_pub,v_a_pub,v_a_pub_front;
+ros::Subscriber vel_sub,vel_sub2,front_pos_sub;
+ros::Publisher  drone_pos_pub,drone2_pos_pub,v_a_pub,front_v_a_pub;
 void visVisitedNode( vector<Vector3d> nodes ,int flag);
-nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path);
-
 
 bool pos_init_flag=1;
 Vector3d current_pos;
@@ -79,12 +77,13 @@ using namespace std;
 
 nav_msgs::Path _vel;
 nav_msgs::Path _vel2;
+nav_msgs::Path _front_pos;
 int update_vel_flag=0;//路径更新标志位
 int begin_control_flag=0;//控制飞机标志位
-
+int update_frontpos_flag=0;
+int begin_frontpos=0;
 int update_vel_flag2=0;//路径更新标志位
 int begin_control_flag2=0;//控制飞机标志位
-
 
 void rcvVelCallBack(nav_msgs::Path vel)
 {
@@ -98,33 +97,37 @@ void rcvVelCallBack2(nav_msgs::Path vel)
         update_vel_flag2=1;
 }
 
+void rcvFrontPosCallBack(nav_msgs::Path pos)
+{
+    _front_pos = pos;
+    update_frontpos_flag=1;
+}
+
 double last_v_x_front=0;
 double last_v_y_front=0;
 double last_v_z_front=0;
 
+nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
+{
+    nav_msgs::Path waypoints;
+    geometry_msgs::PoseStamped pt;
 
-void Front_Drone_Control(int &i,int flag)
+    for (auto ptr: path)
+    {
+        pt.pose.position.y =  ptr(1);
+        pt.pose.position.x =  ptr(0);
+        pt.pose.position.z =  ptr(2);
+        waypoints.poses.push_back(pt);//维护waypoints
+    }
+    return waypoints;
+}
+
+void Front_Drone_Control(int &i)
 {
     // vector<Vector3d> drone_pos;
         // drone_pos.push_back(_start_pt);
         // ROS_INFO("start_x=%f",drone_pos[0](0));
         // visVisitedNode(drone_pos);
-        if(flag==0)
-        {
-            vector<Vector3d> drone_pos;
-            drone_pos.push_back(current_pos);
-            visVisitedNode(drone_pos,1);
-
-
-            vector<Vector3d> v_a_msg;
-            Vector3d v_msg(0,0,0);
-            Vector3d a_msg(0,0,0);
-            v_a_msg.push_back(v_msg);
-            v_a_msg.push_back(a_msg);
-            v_a_pub_front.publish(vector3d_to_waypoints(v_a_msg));
-            return;
-        }
-
 
         if(pos_init_flag)
         {
@@ -144,17 +147,12 @@ void Front_Drone_Control(int &i,int flag)
         double v_y=_vel.poses[i].pose.position.y;
         double v_z=_vel.poses[i].pose.position.z;
         double v_mod=sqrt(v_x*v_x+v_y*v_y+v_z*v_z);
-
+        cout<<"vx: "<<v_x<<" vy: "<<v_y<<" vz: "<<v_z<<endl;
         current_pos[0]+=v_x*t_gap;
         current_pos[1]+=v_y*t_gap;
         current_pos[2]+=v_z*t_gap;
         
-        vector<Vector3d> drone_pos;
-        drone_pos.push_back(current_pos);
-        visVisitedNode(drone_pos,1);
-        x_target=current_pos[0];
-        y_target=current_pos[1];
-
+        
 
         double a_x=(v_x-last_v_x_front)/t_gap;
         double a_y=(v_y-last_v_y_front)/t_gap;
@@ -169,7 +167,12 @@ void Front_Drone_Control(int &i,int flag)
         Vector3d a_msg(a_x,a_y,a_z);
         v_a_msg.push_back(v_msg);
         v_a_msg.push_back(a_msg);
-        v_a_pub_front.publish(vector3d_to_waypoints(v_a_msg));
+        front_v_a_pub.publish(vector3d_to_waypoints(v_a_msg));
+        vector<Vector3d> drone_pos;
+        drone_pos.push_back(current_pos);
+        visVisitedNode(drone_pos,1);
+        x_target=current_pos[0];
+        y_target=current_pos[1];
 
         // Back_Drone_control();
 
@@ -186,21 +189,28 @@ void Front_Drone_Control(int &i,int flag)
 
 }
 
-
-
-nav_msgs::Path vector3d_to_waypoints(vector<Vector3d> path)
-{
-    nav_msgs::Path waypoints;
-    geometry_msgs::PoseStamped pt;
-
-    for (auto ptr: path)
-    {
-        pt.pose.position.y =  ptr(1);
-        pt.pose.position.x =  ptr(0);
-        pt.pose.position.z =  ptr(2);
-        waypoints.poses.push_back(pt);//维护waypoints
+void Front_Drone_Pos(int &k){
+    if(pos_init_flag){
+        current_pos=_start_pt;
+        pos_init_flag=0;
     }
-    return waypoints;
+    if(update_frontpos_flag==1)
+    {
+        update_frontpos_flag=0;
+        k=0;
+    }
+    double pos_x=_front_pos.poses[k].pose.position.x;
+    double pos_y=_front_pos.poses[k].pose.position.y;
+    double pos_z=_front_pos.poses[k].pose.position.z;
+    current_pos[0]=pos_x;
+    current_pos[1]=pos_y;
+    current_pos[2]=pos_z;
+    k++;
+    if(k>=_front_pos.poses.size())
+    {
+        begin_control_flag=0;
+        k=0;
+    }
 }
 
 
@@ -274,43 +284,6 @@ void Back_Drone_Control2(int &i)
 
 
 
-void rcvPosCallBack(visualization_msgs::Marker pos)
-{
-        // vector<Vector3d> drone_pos;
-        // drone_pos.push_back(_start_pt);
-        // ROS_INFO("start_x=%f",drone_pos[0](0));
-        // visVisitedNode(drone_pos);
-
-        if(pos_init_flag)
-        {
-            current_pos=_start_pt;
-            pos_init_flag=0;
-        }
-
-        for (int i=0;i<pos.points.size();i++)
-        {
-            // double t_frequency=100;
-            // double t_gap=1/t_frequency;
-            // double v_x=vel.poses[i].pose.position.x;
-            // double v_y=vel.poses[i].pose.position.y;
-            // double v_z=vel.poses[i].pose.position.z;
-            // double v_mod=sqrt(v_x*v_x+v_y*v_y+v_z*v_z);
-
-            // current_pos[0]+=v_x*t_gap;
-            // current_pos[1]+=v_y*t_gap;
-            // current_pos[2]+=v_z*t_gap;
-            auto coord=pos.points[i];
-            current_pos[0]=coord.x;
-            current_pos[1]=coord.y;
-            current_pos[2]=coord.z;
-            
-            vector<Vector3d> drone_pos;
-            drone_pos.push_back(current_pos);
-            visVisitedNode(drone_pos,1);
-            ros::Rate rate(100);
-            rate.sleep();
-        }
-}
 
 
 
@@ -512,31 +485,36 @@ int main(int argc, char** argv)
     vel_sub  = nh.subscribe( "/trajectory_generator_node/vel",       1, rcvVelCallBack );//注释则关闭飞机运动
     vel_sub2  = nh.subscribe( "/trajectory_generator_node/vel2",       1, rcvVelCallBack2 );//注释则关闭飞机运动
     // pos_sub  = nh.subscribe( "/trajectory_generator_node/vis_trajectory_besier",       1, rcvPosCallBack );//注释则关闭飞机运动
+    front_pos_sub = nh.subscribe("/trajectory_generator_node/front_pos",    1, rcvFrontPosCallBack);
     drone_pos_pub     = nh.advertise<visualization_msgs::Marker>("drone_pos",50);
     drone2_pos_pub    = nh.advertise<visualization_msgs::Marker>("drone2_pos",50);
     v_a_pub           = nh.advertise<nav_msgs::Path>("back_drone_v_a",50);
-    v_a_pub_front           = nh.advertise<nav_msgs::Path>("front_drone_v_a",50);
-    ros::Rate rate(100);
+    front_v_a_pub = nh.advertise<nav_msgs::Path>("front_drone_v_a",50);
+
+    ros::Rate rate(25);
     bool status = ros::ok();
 
     // ros::AsyncSpinner spinner(4); // Use 4 threads
     
     int i=0;
     int j=0;
-
+    int k=0;
     while(status) 
     {
         ros::spinOnce();      
         // Back_Drone_control();
+        //if(update_frontpos_flag)
+        //    begin_frontpos=1;
+        //if(begin_frontpos)
+        //    Front_Drone_Pos(k);
         if(update_vel_flag==1)
             begin_control_flag=1;
-        Front_Drone_Control(i,begin_control_flag);
-
+        if(begin_control_flag==1)
+            Front_Drone_Control(i);
         if(update_vel_flag2==1)
             begin_control_flag2=1;
         if(begin_control_flag2==1)
             Back_Drone_Control2(j);
-
         status = ros::ok();
         rate.sleep();
     }

@@ -14,8 +14,6 @@ z_list=[]
 v_x_list=[]
 v_y_list=[]
 
-a_x_list=[]
-a_y_list=[]
 
 def poseCallback(msg):
     # rospy.loginfo("Turtle pose: x:%0.6f, y:%0.6f", msg.x, msg.y)
@@ -30,64 +28,14 @@ def poseCallback(msg):
 
     x_list.append(msg.poses[0].pose.position.x)
     y_list.append(msg.poses[0].pose.position.y)
-
-    a_x_list.append(msg.poses[1].pose.position.x)
-    a_y_list.append(msg.poses[1].pose.position.y)
-
     print(msg.poses[0].pose.position.x)
 
     if len(x_list)%100==0:
         fig = plt.figure()
-        x_plot=fig.add_subplot(2,2,1)
-        y_plot=fig.add_subplot(2,2,2)
-        a_x_plot=fig.add_subplot(2,2,3)
-        a_y_plot=fig.add_subplot(2,2,4)
+        x_plot=fig.add_subplot(2,1,1)
+        y_plot=fig.add_subplot(2,1,2)
         x_plot.plot(x_list)
         y_plot.plot(y_list)
-        a_x_plot.plot(a_x_list)
-        a_y_plot.plot(a_y_list)
-        plt.show()
-    # plt.pause(0.1)
-    
-    # x_list.clear()
-    # y_list.clear()
-    # x=[1,2,3]
-    # y=[4,7,5]
-
-    # plt.plot(x,y)
-    # plt.show()
-
-
-
-def FrontposeCallback(msg):
-    # rospy.loginfo("Turtle pose: x:%0.6f, y:%0.6f", msg.x, msg.y)
-    # rospy.loginfo(msg.points[0].x)
-    # print("check")
-    plt.close()
-    # for i in msg.poses:
-    #     # print(i.pose.position.x)
-    #     v_x_list.append(i.pose.position.x)
-    #     v_y_list.append(i.pose.position.y)
-    #     print(i.pose.position.x)
-
-    x_list.append(msg.poses[0].pose.position.x)
-    y_list.append(msg.poses[0].pose.position.y)
-
-    a_x_list.append(msg.poses[1].pose.position.x)
-    a_y_list.append(msg.poses[1].pose.position.y)
-
-    print(msg.poses[0].pose.position.x)
-
-    if len(x_list)%100==0:
-        fig = plt.figure()
-        x_plot=fig.add_subplot(2,2,1)
-        y_plot=fig.add_subplot(2,2,2)
-        a_x_plot=fig.add_subplot(2,2,3)
-        a_y_plot=fig.add_subplot(2,2,4)
-        x_plot.plot(x_list)
-        y_plot.plot(y_list)
-        a_x_plot.plot(a_x_list)
-        a_y_plot.plot(a_y_list)
         plt.show()
     # plt.pause(0.1)
     
@@ -117,8 +65,7 @@ def pose_subscriber():
 
 	# 创建一个Subscriber，订阅名为/turtle1/pose的topic，注册回调函数poseCallback
     # rospy.Subscriber("/trajectory_generator_node/vel2", Path, poseCallback)
-    # rospy.Subscriber("/drone_node/back_drone_v_a", Path, poseCallback)
-    rospy.Subscriber("/drone_node/front_drone_v_a", Path, FrontposeCallback)
+    rospy.Subscriber("/drone_node/back_drone_v_a", Path, poseCallback)
     # rospy.Subscriber("/waypoint_generator/waypoints",Path,showCallback)
 
 	# 循环等待回调函数

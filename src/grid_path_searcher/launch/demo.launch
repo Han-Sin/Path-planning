@@ -3,7 +3,7 @@
 <arg name="map_size_x" default="10.0"/>
 <arg name="map_size_y" default="10.0"/>
 <arg name="map_size_z" default=" 2.0"/>
-
+<arg name="dynamic_barrier" default="1"/>
 <arg name="start_x" default=" 0.0"/>
 <arg name="start_y" default=" 0.0"/>
 <arg name="start_z" default=" 0.1"/>
@@ -22,7 +22,7 @@
       <param name="map/x_size"       value="$(arg map_size_x)"/>
       <param name="map/y_size"       value="$(arg map_size_y)"/>
       <param name="map/z_size"       value="$(arg map_size_z)"/>
-
+      <param name="is_dynamic"       value="$(arg dynamic_barrier)"/>
       <param name="planning/start_x" value="$(arg start_x)"/>
       <param name="planning/start_y" value="$(arg start_y)"/>
       <param name="planning/start_z" value="$(arg start_z)"/>
@@ -49,14 +49,16 @@
     
       <param name="init_state_x"   value="$(arg start_x)"/>
       <param name="init_state_y"   value="$(arg start_y)"/>
+      <param name="init_dynamic"   value="$(arg dynamic_barrier)"/>
 
       <param name="map/x_size"     value="$(arg map_size_x)" />
       <param name="map/y_size"     value="$(arg map_size_y)" />
       <param name="map/z_size"     value="$(arg map_size_z)" />
 
       <param name="map/circle_num" value="0"/>        
-      <param name="map/obs_num"    value="80"/>        
-      <param name="map/resolution" value="0.1"/>        
+      <param name="map/obs_num"    value="50"/>        
+      <param name="map/resolution" value="0.1"/>
+              
 
       <param name="ObstacleShape/lower_rad" value="0.1"/>
       <param name="ObstacleShape/upper_rad" value="0.7"/>
@@ -89,7 +91,6 @@
       <param name="planning/dev_order" value="4"    />
       <param name="planning/min_order" value="3"    />
       <param name="vis/vis_traj_width" value="0.05" />
-      <!-- <param name="map/resolution"   value="0.2" /> -->
 
   </node>
   

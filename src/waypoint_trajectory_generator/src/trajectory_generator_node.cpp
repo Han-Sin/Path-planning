@@ -50,7 +50,7 @@ using namespace Eigen;
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub,_back_drone_v_a_sub,_front_drone_v_a_sub;
     ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub,
-    _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,
+    _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,_front_pos_pub,
     _corridor_pub,_corridor_pub2,_points_pub;
 
 // for planning
@@ -83,7 +83,9 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::PointCloud<pcl::PointXYZ> cloud_vis;
     sensor_msgs::PointCloud2 map_vis;
-
+    _trajGene->resetObs();
+    _corridor->resetObs();
+    _corridor2->resetObs();
     pcl::fromROSMsg(pointcloud_map, cloud);
     
     if( (int)cloud.points.size() == 0 ) return;
@@ -150,27 +152,38 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     int check_order=0;
     int suc_flag=0;
     // while(false)
+    int count=0;
     while(true)
-    {
+    {   
+        count++;
+        if(count>100){
+            ROS_INFO("died!!!");
+            break;
+        }
         GridNodePtr start_node=new GridNode(_corridor->coord2gridIndex(wp_list[last_node_order]),wp_list[last_node_order]);
-        for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
-        {
-            GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
-            FlightCube temp_cube(start_node,end_node);
-            // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
-            if(_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
+        if(wp_list.size()==1){
+            check_order=0;
+            suc_flag=1;
+        }
+        else{
+            for(check_order=last_node_order+1;check_order<wp_list.size();check_order++)
             {
-                suc_flag=1;
-                break;
-            }
-            else if(!_corridor->check_cube_safe(temp_cube))
-                break;
-            else if(check_order==wp_list.size())
-            {
-                ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                GridNodePtr end_node=new GridNode(_corridor->coord2gridIndex(wp_list[check_order]),wp_list[check_order]);
+                FlightCube temp_cube(start_node,end_node);
+                // ROS_INFO("current_cube safe check is %d   order=%d",_corridor->check_cube_safe(temp_cube),check_order);
+                if(_corridor->check_cube_safe(temp_cube)&&check_order==wp_list.size()-1)
+                {
+                    suc_flag=1;
+                    break;
+                }
+                else if(!_corridor->check_cube_safe(temp_cube))
+                    break;
+                else if(check_order==wp_list.size())
+                {
+                    ROS_WARN("no solution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                }
             }
         }
-        
         // ROS_INFO("suc_flag=%d path size=%d ,last_node_order=%d     check_order=%d",suc_flag,wp_list.size(),last_node_order,check_order);
 
         GridNodePtr end_node;
@@ -195,10 +208,10 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     ROS_INFO_STREAM("Start:"<<Start_point<<"End: "<<End_point);
     Vector3d a(0,0,0);
     Vector3d v(0,0,0); 
-    if (corridor_time.size()==1){
+    if (corridor_time.size()==1){//TRICK!!!
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,10,10,Start_point,End_point,corridor_time,v,a,v,a);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,100000,10000000,Start_point,End_point,corridor_time,_last_vel_front,_last_acc_front);
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
     // else
@@ -215,11 +228,11 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
 
     //MatrixXd waypoints(wp_list.size() + 1, 3);
     //waypoints.row(0) = _startPos;
-    MatrixXd waypoints(wp_list.size(), 3);
+    //MatrixXd waypoints(wp_list.size(), 3);
     //for(int k = 0; k < (int)wp_list.size(); k++)
     //    waypoints.row(k+1) = wp_list[k];
-    for(int k = 0; k < (int)wp_list.size(); k++)
-        waypoints.row(k) = wp_list[k];
+    //for(int k = 0; k < (int)wp_list.size(); k++)
+    //    waypoints.row(k) = wp_list[k];
     
     //Trajectory generation: use minimum snap trajectory generation method
     //waypoints is the result of path planning (Manual in this homework)
@@ -331,14 +344,7 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     if (corridor_time.size()==1){//TRICK!!!
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,10,10,
-    Start_point,End_point,corridor_time,_last_vel,_last_acc,v,a);
-
-    // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,1000000000,100000000,
-    // Start_point,End_point,corridor_time,_last_vel,_last_acc,_last_vel_front,a);
-    // cout<<"vel="<<_last_vel_front<<endl;
-    // cout<<"acc="<<_last_acc_front<<endl;
-
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,10,10,Start_point,End_point,corridor_time,_last_vel,_last_acc);
     // int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor2,100,100,Start_point,End_point,corridor_time,v,a);
     ROS_INFO("start_p=%f %f   end_p=%f  %f",Start_point(0),Start_point(1),End_point(0),End_point(1));
     // if(bezier_flag==0)
@@ -349,27 +355,7 @@ void rcvWaypointsCallBack2(const nav_msgs::Path & wp)
     ROS_WARN("bezier traj2 generation success! Time cost is %f  ms",(time_bezier_end-time_corr_end).toSec()*1000);
 
     visWayPointTraj_besier(corridor_time,2);
-
     _corridor2->cubes.clear();
-
-
-    
-
-
-    // //MatrixXd waypoints(wp_list.size() + 1, 3);
-    // //waypoints.row(0) = _startPos;
-    // MatrixXd waypoints(wp_list.size(), 3);
-    // //for(int k = 0; k < (int)wp_list.size(); k++)
-    // //    waypoints.row(k+1) = wp_list[k];
-    // for(int k = 0; k < (int)wp_list.size(); k++)
-    //     waypoints.row(k) = wp_list[k];
-    
-    // //Trajectory generation: use minimum snap trajectory generation method
-    // //waypoints is the result of path planning (Manual in this homework)
-    
-    
-    // // trajGeneration(waypoints,0);
-    // //化简后的结点。
 }
 
 
@@ -478,15 +464,9 @@ void rcvBackDroneVACallback(const nav_msgs::Path & wp)
     {
         _last_vel<<wp.poses[0].pose.position.x,wp.poses[0].pose.position.y,wp.poses[0].pose.position.z;
         _last_acc<<wp.poses[1].pose.position.x,wp.poses[1].pose.position.y,wp.poses[1].pose.position.z;
-    }
-    
-
-
+    }    
 }
-
-
-void rcvFrontDroneVACallback(const nav_msgs::Path & wp)
-{
+void rcvFrontDroneVACallback(const nav_msgs::Path& wp){
     if (wp.poses.size()!=2)
     {
         ROS_WARN("Invalid v a!!!");
@@ -496,7 +476,6 @@ void rcvFrontDroneVACallback(const nav_msgs::Path & wp)
         _last_vel_front<<wp.poses[0].pose.position.x,wp.poses[0].pose.position.y,wp.poses[0].pose.position.z;
         _last_acc_front<<wp.poses[1].pose.position.x,wp.poses[1].pose.position.y,wp.poses[1].pose.position.z;
     }
-    
 }
 
 
@@ -525,22 +504,23 @@ int main(int argc, char** argv)
     
     _map_sub  = nh.subscribe( "/random_complex/global_map", 1, rcvPointCloudCallBack );
 
-    _way_pts_sub     = nh.subscribe( "/demo_node/grid_path", 1, rcvWaypointsCallBack );
-    _way_pts_sub2     = nh.subscribe( "/demo_node/simplified_waypoints", 1, rcvMinSnapCallBack );
-    _way_pts_sub3     = nh.subscribe( "/demo_node/grid_path2", 1, rcvWaypointsCallBack2 );
-
+    _way_pts_sub     = nh.subscribe( "/demo_node/grid_path", 1, rcvWaypointsCallBack );//给贝塞尔曲线用，一号飞机
+    //_way_pts_sub2     = nh.subscribe( "/demo_node/simplified_waypoints", 1, rcvMinSnapCallBack );//minisnap
+    _way_pts_sub3     = nh.subscribe( "/demo_node/grid_path2", 1, rcvWaypointsCallBack2 );//给贝塞尔曲线用，二号飞机
+ 
     _back_drone_v_a_sub = nh.subscribe( "/drone_node/back_drone_v_a", 1, rcvBackDroneVACallback );
-    _front_drone_v_a_sub = nh.subscribe( "/drone_node/front_drone_v_a", 1, rcvFrontDroneVACallback );
+    _front_drone_v_a_sub = nh.subscribe("/drone_node/front_drone_v_a",1, rcvFrontDroneVACallback );
     // _way_pts_sub2    = nh.subscribe( "/demo_node/simplified_waypoints2", 1, rcvWaypointsCallBack2 );
     // _way_pts_sub3    = nh.subscribe( "/demo_node/simplified_waypoints3", 1, rcvWaypointsCallBack3 );//迭代的最后输出，matlab看速度用
 
-    _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);
-    _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);
-    _wp_traj_besier_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier", 1);
-    _wp_traj_besier_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier2", 1);
+    _wp_traj_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory", 1);//s=d=迭代后
+    _wp_traj_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory2", 1);//迭代前
+    _wp_traj_besier_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier", 1);//一号飞机
+    _wp_traj_besier_vis_pub2 = nh.advertise<visualization_msgs::Marker>("vis_trajectory_besier2", 1);//二号飞机
     _wp_path_vis_pub = nh.advertise<visualization_msgs::Marker>("vis_waypoint_path", 1);
     _vel_pub =         nh.advertise<nav_msgs::Path>("vel",1);
     _vel_pub2 =         nh.advertise<nav_msgs::Path>("vel2",1);
+    _front_pos_pub = nh.advertise<nav_msgs::Path>("front_pos",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
     _corridor_pub =    nh.advertise<visualization_msgs::Marker>("vis_corridor",1);
     _corridor_pub2 =    nh.advertise<visualization_msgs::Marker>("vis_corridor2",1);
@@ -656,6 +636,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
     else if(flag==1)//未迭代的轨迹
         _wp_traj_vis_pub2.publish(_traj_vis);
     else if(flag==2){
+        //迭代后的轨迹
         _wp_traj_vis_pub.publish(_traj_vis); 
     }
     // _points_pub.publish(_traj);
@@ -722,7 +703,7 @@ void visWayPointTraj_besier( VectorXd time,int flag)
 
     vector<Vector3d> vel_pub;
     vector<Vector3d> acc_pub;
-
+    vector<Vector3d> pos_pub;
 
     for(int i = 0; i < time.size(); i++ )
     {   
@@ -747,6 +728,7 @@ void visWayPointTraj_besier( VectorXd time,int flag)
             vel_pub.push_back(vel);
 
             pos = Beziertraj.getPosFromBezier(t,i);
+            pos_pub.push_back(pos);
             cur(0) = pt.x = pos(0);
             cur(1) = pt.y = pos(1);
             cur(2) = pt.z = pos(2);
@@ -759,9 +741,10 @@ void visWayPointTraj_besier( VectorXd time,int flag)
 
     if(flag==1)
     {
-        //迭代后的轨迹
+        
         _wp_traj_besier_vis_pub.publish(_traj_vis);
         _vel_pub.publish(vector3d_to_waypoints(vel_pub));
+        _front_pos_pub.publish(vector3d_to_waypoints(pos_pub));
         // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
     }
     else if(flag==2)

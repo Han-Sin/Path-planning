@@ -231,6 +231,12 @@ void TrajectoryGeneratorWaypoint::initGridMap(double _resolution, Vector3d globa
     data = new uint8_t[GLXYZ_SIZE];
     memset(data, 0, GLXYZ_SIZE * sizeof(uint8_t));
 }
+
+void TrajectoryGeneratorWaypoint::resetObs(){
+    for(int i=0;i<GLXYZ_SIZE;i++)
+        data[i]=0;
+}
+
 void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coord_y, const double coord_z)
 {   
     if( coord_x < gl_xl  || coord_y < gl_yl  || coord_z <  gl_zl ||
@@ -249,14 +255,6 @@ void TrajectoryGeneratorWaypoint::setObs(const double coord_x, const double coor
     // int expand_size=(int)(expand_ratio*(double)(default_resolution/resolution));//膨胀栅格数，0时不膨胀，1够用
 
     int expand_size=(int)(default_resolution/resolution)-1+(int)expand_ratio;
-
-    // if(expand_size<=0)
-    //     expand_size=0;
-    
-    // expand_size=expand_size-1;
-    // ROS_INFO("traj   expand_size= %d  ",expand_size);
-    
-
     for (int i=-expand_size;i<=expand_size;i++)
         for (int j=-expand_size;j<=expand_size;j++)
             for (int k=-expand_size;k<=expand_size;k++)
@@ -579,9 +577,7 @@ int BezierTrajOptimizer::bezierCurveGeneration(
     Vector3d end_pos,
     VectorXd time,
     Vector3d start_vel,
-    Vector3d start_acc,
-    Vector3d end_vel,
-    Vector3d end_acc
+    Vector3d start_acc
     )
 {   
     //ROS_INFO("zheli!!!!!!");
@@ -653,8 +649,8 @@ int BezierTrajOptimizer::bezierCurveGeneration(
         else if (i >= 3  && i < 6  ) beq_i = start_vel(i-3);//v 
         else if (i >= 6  && i < 9  ) beq_i = start_acc(i-6);//a
         else if (i >= 9 && i < 12 ) beq_i = end_pos(i-9);//pend_pos(i)
-        else if (i >= 12 && i < 15 ) beq_i = end_vel(i-12);//end:v
-        else if (i >= 15 && i < 18 ) beq_i = end_acc(i-15);//end:a
+        else if (i >= 12 && i < 15 ) beq_i = 0;//end:v
+        else if (i >= 15 && i < 18 ) beq_i = 0;//end:a
         else beq_i = 0.0;//连续性约束
         b[i] = beq_i;
     }
