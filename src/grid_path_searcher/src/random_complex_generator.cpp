@@ -253,11 +253,20 @@ int main (int argc, char** argv)
    ros::Rate loop_rate(_sense_rate);
    //loop_rate.sleep(); 
    //pubSensedPoints();
+
+   int pub_flag=1;
    while (ros::ok())
    {
       ros::spinOnce();      
       if(dynamic) RandomMapGenerate();
-      pubSensedPoints();
+      // if(!dynamic&&pub_flag){
+      //    pubSensedPoints();
+      //    pub_flag=0;
+      // }
+      // else if(dynamic)
+      // {
+         pubSensedPoints();
+      // }
       loop_rate.sleep();
    }
 }

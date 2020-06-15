@@ -86,7 +86,11 @@ void rcvWaypointsCallback(const nav_msgs::Path & wp)
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
 {
-    if(_has_map&&!is_dynamic ) return;
+    if(_has_map&&!is_dynamic ) 
+    {
+        ROS_WARN("map already had");
+        return;
+    }
     //ROS_INFO("safsafasfsasa");
 
     pcl::PointCloud<pcl::PointXYZ> cloud;

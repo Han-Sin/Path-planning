@@ -28,6 +28,102 @@ v_mod_list=[]
 a_mod_list=[]
 j_mod_list=[]
 
+raw_vx_list=[]
+raw_ax_list=[]
+raw_jx_list=[]
+raw_vy_list=[]
+raw_ay_list=[]
+raw_jy_list=[]
+raw_vz_list=[]
+raw_az_list=[]
+raw_jz_list=[]
+
+
+
+def velCallback(msg):
+    global raw_vx_list,raw_vy_list,raw_vz_list
+    for i in msg.poses:
+        raw_vx_list.append(i.pose.position.x)
+        raw_vy_list.append(i.pose.position.y)
+        raw_vz_list.append(i.pose.position.z)
+    plot()
+
+def accCallback(msg):
+    global raw_ax_list,raw_ay_list,raw_az_list
+    for i in msg.poses:
+        raw_ax_list.append(i.pose.position.x)
+        raw_ay_list.append(i.pose.position.y)
+        raw_az_list.append(i.pose.position.z)
+    plot()
+
+def jerkCallback(msg):
+    global raw_jx_list,raw_jy_list,raw_jz_list
+    for i in msg.poses:
+        raw_jx_list.append(i.pose.position.x)
+        raw_jy_list.append(i.pose.position.y)
+        raw_jz_list.append(i.pose.position.z)
+    plot()
+
+
+def plot():
+    global raw_vx_list,raw_vy_list,raw_vz_list,raw_ax_list,raw_ay_list,raw_az_list,raw_jx_list,raw_jy_list,raw_jz_list
+    # print("length = ",len(raw_vx_list), len(raw_j_list),len(raw_a_list))
+    if  len(raw_vx_list)>0 and len(raw_jx_list)>0 and len(raw_ax_list)>0 :
+        
+        t=np.arange(0,len(raw_vx_list),1)
+        t=t/100.0
+
+        plt.title("vel,acc and jerk in besier")
+
+        plt.subplot(3,3,1)
+        plt.plot(t,raw_vx_list)
+        plt.xlabel("time")
+        plt.ylabel("vel x / m/s")
+
+        plt.subplot(3,3,4)
+        plt.plot(t,raw_ax_list)
+        plt.xlabel("time")
+        plt.ylabel("acc x / m/s2")
+
+        plt.subplot(3,3,7)
+        plt.plot(t,raw_jx_list)
+        plt.xlabel("time")
+        plt.ylabel("jerk x / m/s3")#plot x
+
+        plt.subplot(3,3,2)
+        plt.plot(t,raw_vy_list)
+        plt.xlabel("time")
+        plt.ylabel("vel y / m/s")
+
+        plt.subplot(3,3,5)
+        plt.plot(t,raw_ay_list)
+        plt.xlabel("time")
+        plt.ylabel("acc y / m/s2")
+
+        plt.subplot(3,3,8)
+        plt.plot(t,raw_jy_list)
+        plt.xlabel("time")
+        plt.ylabel("jerk y / m/s3")#plot y
+        
+        plt.subplot(3,3,3)
+        plt.plot(t,raw_vz_list)
+        plt.xlabel("time")
+        plt.ylabel("vel z / m/s")
+
+        plt.subplot(3,3,6)
+        plt.plot(t,raw_az_list)
+        plt.xlabel("time")
+        plt.ylabel("acc z / m/s2")
+
+        plt.subplot(3,3,9)
+        plt.plot(t,raw_jz_list)
+        plt.xlabel("time")
+        plt.ylabel("jerk z / m/s3")#plot z
+
+        plt.show()
+
+
+
 def get_mod(x1,x2,x3):
     return math.sqrt(x1**2+x2**2+x3**2)
 
@@ -88,7 +184,7 @@ def vel_acc_Callback(msg):
     j_mod_list.append(get_mod(msg.poses[2].pose.position))
 
 
-    threshold=0.01
+    threshold=0.1
 
     if abs(cur_y-target_y)>threshold:
         plot_flag=1
@@ -203,10 +299,12 @@ def pose_subscriber():
     rospy.init_node('pose_subscriber', anonymous=True)
 
 	# 创建一个Subscriber，订阅名为/turtle1/pose的topic，注册回调函数poseCallback
-    # rospy.Subscriber("/trajectory_generator_node/vel2", Path, poseCallback)
-    rospy.Subscriber("/drone_node/front_drone_v_a", Path, vel_acc_Callback)
-    rospy.Subscriber("/waypoint_generator/waypoints", Path, targetCallback)
-    rospy.Subscriber("/drone_node/drone_pos", Marker, poseCallback)
+    rospy.Subscriber("/trajectory_generator_node/vel", Path, velCallback)
+    rospy.Subscriber("/trajectory_generator_node/acc", Path, accCallback)
+    rospy.Subscriber("/trajectory_generator_node/jerk", Path, jerkCallback)
+    # rospy.Subscriber("/drone_node/front_drone_v_a", Path, vel_acc_Callback)
+    # rospy.Subscriber("/waypoint_generator/waypoints", Path, targetCallback)
+    # rospy.Subscriber("/drone_node/drone_pos", Marker, poseCallback)
     
     # rospy.Subscriber("/waypoint_generator/waypoints",Path,showCallback)
 

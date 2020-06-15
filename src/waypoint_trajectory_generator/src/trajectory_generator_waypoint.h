@@ -306,6 +306,21 @@ class BezierTrajOptimizer
               // ROS_INFO("ret=%f  %f  %f",ret(0),ret(1),ret(2));
 		      return ret;  
 		    };
+        inline Eigen::Vector3d getJerkFromBezier(const double & t_now, const int & seg_now ){
+		      Eigen::Vector3d ret = Eigen::VectorXd::Zero(3);
+          double T = PolyTime(seg_now);
+          // T=1;
+          // cout<<PolyCoeff;
+		      for(int i = 0; i < 3; i++)
+		        for(int j = 0; j < traj_order-2; j++)
+            {
+              double c_n=traj_order*(traj_order-1)*(traj_order-2)*(PolyCoeff(seg_now, i * (traj_order+1) + j + 3)-3*PolyCoeff(seg_now, i * (traj_order+1) + j + 2)+3*PolyCoeff(seg_now, i * (traj_order+1) + j + 1)-PolyCoeff(seg_now, i * (traj_order+1) + j))/pow(T,3);
+              ret(i)+=combinatorial(traj_order-3,j)*c_n*pow(t_now/T, j) * pow((1 - t_now/T), (traj_order-3 - j) );
+            }
+		          // ret(i) += C_[j] * PolyCoeff(seg_now, i * (traj_order+1) + j) * pow(t_now/T, j) * pow((1 - t_now/T), (traj_order - j) ); 
+              // ROS_INFO("ret=%f  %f  %f",ret(0),ret(1),ret(2));
+		      return ret;  
+		    };
 
 
 

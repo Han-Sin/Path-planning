@@ -839,14 +839,14 @@ int BezierTrajOptimizer::bezierCurveGeneration(
 
             for(int i = 0; i < 3; i++)
             {  
-                dA[nn_idx]   =  1.0  /pow(val0,3);
-                dA[nn_idx+1] = -1.0  /pow(val0,3);
-                dA[nn_idx+2] = -1.0  /pow(val0,3);
+                dA[nn_idx]   =  -1.0  /pow(val0,3);
+                dA[nn_idx+1] = 3.0  /pow(val0,3);
+                dA[nn_idx+2] = -3.0  /pow(val0,3);
                 dA[nn_idx+3] =  1.0  /pow(val0,3);
                 
-                dA[nn_idx+4] = -1.0  /pow(val1,3);
-                dA[nn_idx+5] =  1.0  /pow(val1,3);
-                dA[nn_idx+6] =  1.0  /pow(val1,3);
+                dA[nn_idx+4] = 1.0  /pow(val1,3);
+                dA[nn_idx+5] =  -3.0  /pow(val1,3);
+                dA[nn_idx+6] =  3.0  /pow(val1,3);
                 dA[nn_idx+7] = -1.0  /pow(val1,3);
                 
                 

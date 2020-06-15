@@ -50,7 +50,7 @@ using namespace Eigen;
 // ros related
     ros::Subscriber _way_pts_sub,_way_pts_sub2,_way_pts_sub3,_map_sub,_back_drone_v_a_sub,_front_drone_v_a_sub;
     ros::Publisher  _wp_traj_vis_pub,_wp_traj_vis_pub2,_wp_traj_vis_pub3,_wp_traj_besier_vis_pub,
-    _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_acc_pub,_front_pos_pub,
+    _wp_traj_besier_vis_pub2, _wp_path_vis_pub,  _vel_pub,_vel_pub2,_jerk_pub,_acc_pub,_front_pos_pub,
     _corridor_pub,_corridor_pub2,_points_pub;
 
 // for planning
@@ -211,7 +211,7 @@ void rcvWaypointsCallBack(const nav_msgs::Path & wp)
     if (corridor_time.size()==1){//TRICK!!!
         corridor_time(0) = corridor_time(0)*2;
     }
-    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,100000,10000000,Start_point,End_point,corridor_time,_last_vel_front,_last_acc_front);
+    int bezier_flag = Beziertraj.bezierCurveGeneration(*_corridor,100000,10000000,Start_point,End_point,corridor_time,v,a);
     // if(bezier_flag==0)
     //     ROS_INFO("bezier traj generation success!!!");
     // else
@@ -456,7 +456,7 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
 
 void rcvBackDroneVACallback(const nav_msgs::Path & wp)
 {
-    if (wp.poses.size()!=2)
+    if (wp.poses.size()!=3)
     {
         ROS_WARN("Invalid v a!!!");
     }
@@ -467,7 +467,7 @@ void rcvBackDroneVACallback(const nav_msgs::Path & wp)
     }    
 }
 void rcvFrontDroneVACallback(const nav_msgs::Path& wp){
-    if (wp.poses.size()!=2)
+    if (wp.poses.size()!=3)
     {
         ROS_WARN("Invalid v a!!!");
     }
@@ -522,6 +522,7 @@ int main(int argc, char** argv)
     _vel_pub2 =         nh.advertise<nav_msgs::Path>("vel2",1);
     _front_pos_pub = nh.advertise<nav_msgs::Path>("front_pos",1);
     _acc_pub =         nh.advertise<nav_msgs::Path>("acc",1);
+    _jerk_pub =         nh.advertise<nav_msgs::Path>("jerk",1);
     _corridor_pub =    nh.advertise<visualization_msgs::Marker>("vis_corridor",1);
     _corridor_pub2 =    nh.advertise<visualization_msgs::Marker>("vis_corridor2",1);
     //_points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
@@ -615,6 +616,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
                 Vector3d acc = getAcc(polyCoeff,i,t);
                 vel_pub.push_back(vel);
                 acc_pub.push_back(acc);
+                std::cout<<"acc="<<acc<<std::endl;
             }
             pos = getPosPoly(polyCoeff, i, t);
             cur(0) = pt.x = pos(0);
@@ -703,6 +705,7 @@ void visWayPointTraj_besier( VectorXd time,int flag)
 
     vector<Vector3d> vel_pub;
     vector<Vector3d> acc_pub;
+    vector<Vector3d> jerk_pub;
     vector<Vector3d> pos_pub;
 
     for(int i = 0; i < time.size(); i++ )
@@ -717,15 +720,18 @@ void visWayPointTraj_besier( VectorXd time,int flag)
             // }
             Vector3d vel = Beziertraj.getVelFromBezier(t,i);
             Vector3d acc = Beziertraj.getAccFromBezier(t,i);
-
+            Vector3d jerk = Beziertraj.getJerkFromBezier(t,i);
             // if(flag==2&&count==17)
             // {
             //     _last_acc=acc;
             //     _last_vel=vel;
             // }
                 
-
+        
             vel_pub.push_back(vel);
+            acc_pub.push_back(acc);
+            jerk_pub.push_back(jerk);
+
 
             pos = Beziertraj.getPosFromBezier(t,i);
             pos_pub.push_back(pos);
@@ -745,7 +751,8 @@ void visWayPointTraj_besier( VectorXd time,int flag)
         _wp_traj_besier_vis_pub.publish(_traj_vis);
         _vel_pub.publish(vector3d_to_waypoints(vel_pub));
         _front_pos_pub.publish(vector3d_to_waypoints(pos_pub));
-        // _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+        _acc_pub.publish(vector3d_to_waypoints(acc_pub));
+        _jerk_pub.publish(vector3d_to_waypoints(jerk_pub));
     }
     else if(flag==2)
     {
