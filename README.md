@@ -35,7 +35,7 @@
 
 ```bash
 cd ~/your_catkin_ws/src
-git clone https://github.com/Han-Sin/Path-planning/tree/master/src/grid_path_searcher
+git clone https://github.com/Han-Sin/Path-planning/tree/master/src
 cd ../
 catkin_make 
 source ~/your_catkin_ws/devel/setup.bash
