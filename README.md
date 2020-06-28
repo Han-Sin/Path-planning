@@ -13,7 +13,9 @@
 
 下图是对比结果。
 
-![1593343806362](/home/hzc/.config/Typora/typora-user-images/1593343806362.png)
+![1593345360802](images/1593345360802.png)
+
+
 
 蓝线代表minisanp轨迹，红线代表贝塞尔曲线轨迹，由此可见红线要顺滑很多。
 
@@ -34,17 +36,17 @@
 强烈建议您自己新开一个工作区。
 
 ```bash
-cd ~/your_catkin_ws/src
-git clone https://github.com/Han-Sin/Path-planning/tree/master/src
-cd ../
+cd ~/your_catkin_ws
+git clone https://github.com/Han-Sin/Path-planning
+cd Path-planning
 catkin_make 
-source ~/your_catkin_ws/devel/setup.bash
+source devel/setup.bash
 roslaunch grid_path_searcher demo.launch
 ```
 
 如果能出现如下界面，则您成功了。
 
-![1593344043645](/home/hzc/.config/Typora/typora-user-images/1593344043645.png)
+![1593345408174](images/1593345408174.png)
 
 
 
