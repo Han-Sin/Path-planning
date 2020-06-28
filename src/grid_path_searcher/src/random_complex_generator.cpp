@@ -242,7 +242,7 @@ int main (int argc, char** argv)
    n.param("CircleShape/upper_circle_rad", _w_c_h, 0.8);
 
    n.param("sensing/rate", _sense_rate, 1.0);
-   _sense_rate=0.25;
+   _sense_rate=1;
    _x_l = - _x_size / 2.0;
    _x_h = + _x_size / 2.0;
 

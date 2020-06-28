@@ -4,6 +4,7 @@
 <arg name="map_size_y" default="10.0"/>
 <arg name="map_size_z" default=" 2.0"/>
 <arg name="dynamic_barrier" default="0"/>
+<arg name="arg_is_track" default = "0"/>
 <arg name="start_x" default=" 0.0"/>
 <arg name="start_y" default=" 0.0"/>
 <arg name="start_z" default=" 0.1"/>
@@ -23,6 +24,7 @@
       <param name="map/y_size"       value="$(arg map_size_y)"/>
       <param name="map/z_size"       value="$(arg map_size_z)"/>
       <param name="is_dynamic"       value="$(arg dynamic_barrier)"/>
+      <param name="is_track"         value="$(arg arg_is_track)"/> 
       <param name="planning/start_x" value="$(arg start_x)"/>
       <param name="planning/start_y" value="$(arg start_y)"/>
       <param name="planning/start_z" value="$(arg start_z)"/>

@@ -13,10 +13,6 @@
 #include <visualization_msgs/Marker.h>
 #include <sensor_msgs/Joy.h>
 #include <algorithm>
-//#include <waypoint_trajectory_generator/Trajectoy.h>
-//#include <waypoint_trajectory_generator/trajpoint.h>
-//#include <quadrotor_msgs/PolynomialTrajectory.h>
-// Useful customized headers
 #include "trajectory_generator_waypoint.h"
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -456,7 +452,7 @@ void trajGeneration(Eigen::MatrixXd path,int flag=0)
 
 void rcvBackDroneVACallback(const nav_msgs::Path & wp)
 {
-    if (wp.poses.size()!=3)
+    if (wp.poses.size()!=2)
     {
         ROS_WARN("Invalid v a!!!");
     }
@@ -469,7 +465,7 @@ void rcvBackDroneVACallback(const nav_msgs::Path & wp)
 void rcvFrontDroneVACallback(const nav_msgs::Path& wp){
     if (wp.poses.size()!=3)
     {
-        ROS_WARN("Invalid v a!!!");
+        ROS_WARN("Invalid v a j!!!");
     }
     else
     {
@@ -525,7 +521,6 @@ int main(int argc, char** argv)
     _jerk_pub =         nh.advertise<nav_msgs::Path>("jerk",1);
     _corridor_pub =    nh.advertise<visualization_msgs::Marker>("vis_corridor",1);
     _corridor_pub2 =    nh.advertise<visualization_msgs::Marker>("vis_corridor2",1);
-    //_points_pub = nh.advertise<waypoint_trajectory_generator::Trajectoy>("trajectory_points",1);
     _map_lower << - _x_size/2.0, - _y_size/2.0,     0.0;
     _map_upper << + _x_size/2.0, + _y_size/2.0, _z_size;  
     _inv_resolution = 1.0 / _resolution;
@@ -679,20 +674,11 @@ void visWayPointTraj_besier( VectorXd time,int flag)
 
     else if(flag==2)
     {
-    // {   double a=(double)2.0;
         _traj_vis.color.a = 1.0;
         _traj_vis.color.r = 0.0;
         _traj_vis.color.g = 0.0;
         _traj_vis.color.b = 1.0;
-        // _traj_vis.color.r = (double)(random()%100/100.0);
-        // _traj_vis.color.g = (double)(random()%100/100.0);
-        // _traj_vis.color.b = (double)(random()%100/100.0);
-        // ROS_INFO("%d   %f",random(),_traj_vis.color.r);
-
     }
-
-
-
     double traj_len = 0.0;
     int count = 0;
     Vector3d cur, pre;

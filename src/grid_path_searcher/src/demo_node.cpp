@@ -22,7 +22,7 @@
 
 using namespace std;
 using namespace Eigen;
-
+Vector3d _back_drone_pos(0,0,2);
 namespace backward {
 backward::SignalHandling sh;
 }
@@ -30,7 +30,7 @@ backward::SignalHandling sh;
 // simulation param from launch file
 double _resolution, _inv_resolution, _cloud_margin;
 double _x_size, _y_size, _z_size;    
-int is_dynamic;
+int is_dynamic,is_track;
 // useful global variables
 bool _has_map   = false;
 
@@ -39,7 +39,7 @@ Vector3d _map_lower, _map_upper;
 Vector3d target_pt_front;
 int _max_x_id, _max_y_id, _max_z_id;
 bool update_map=0;
-Vector3d _back_drone_pos;
+
 
 // ros related
 ros::Subscriber _map_sub, _pts_sub,_traj_sub,drone_pos_sub,_back_drone_pos_sub;
@@ -91,7 +91,6 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
         ROS_WARN("map already had");
         return;
     }
-    //ROS_INFO("safsafasfsasa");
 
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::PointCloud<pcl::PointXYZ> cloud_vis;
@@ -250,7 +249,12 @@ void rcvDronePosCallBack(const visualization_msgs::Marker &pos_msg)
             ros::Time time_2 = ros::Time::now();
             //ROS_WARN("time passed %f ms", (time_2 - time_1).toSec() * 1000.0);
             time_1=time_2;
-            //pathFinding(_back_drone_pos,target,2);
+            if(is_track)
+            {
+                //ROS_INFO("BACK_DRONE_POS=%f %f %f ",_back_drone_pos[0],_back_drone_pos[1],_back_drone_pos[2]);
+                pathFinding(_back_drone_pos,target,2);  
+            }
+        
         }
         
 }
@@ -261,12 +265,12 @@ void rcvBackDronePosCallBack(const visualization_msgs::Marker & p)
 {
     auto temp_p=p.points[0];
     _back_drone_pos<<temp_p.x,temp_p.y,temp_p.z;
-    // ROS_INFO("BACK DRONE POS = %f  %f  %f",_back_drone_pos(0),_back_drone_pos(1),_back_drone_pos(2));
+    //ROS_INFO("BACK DRONE POS = %f  %f  %f",_back_drone_pos(0),_back_drone_pos(1),_back_drone_pos(2));
 }
 
 int main(int argc, char** argv)
 {
-    cout<<int(5.5)<<"   "<<int(-5.5)<<"   "<<int(5.6)<<"    "<<int(-5.6)<<endl;
+   
     ros::init(argc, argv, "demo_node");
     ros::NodeHandle nh("~");
 
@@ -274,7 +278,8 @@ int main(int argc, char** argv)
     _pts_sub  = nh.subscribe( "waypoints", 1, rcvWaypointsCallback );
     drone_pos_sub = nh.subscribe("/drone_node/drone_pos",50,rcvDronePosCallBack);
     _back_drone_pos_sub = nh.subscribe( "/drone_node/drone2_pos", 1, rcvBackDronePosCallBack );
-
+    ROS_INFO("BACK_DRONE_POS=%f %f %f ",_back_drone_pos[0],_back_drone_pos[1],_back_drone_pos[2]);
+    _back_drone_pos<<0,0,2;
     _grid_map_vis_pub             = nh.advertise<sensor_msgs::PointCloud2>("grid_map_vis", 1);
     _grid_path_vis_pub            = nh.advertise<visualization_msgs::Marker>("grid_path_vis", 1);
     _grid_path_vis_pub_jps        = nh.advertise<visualization_msgs::Marker>("grid_path_vis_jps", 1);
@@ -294,6 +299,7 @@ int main(int argc, char** argv)
     nh.param("map/y_size",        _y_size, 50.0);
     nh.param("map/z_size",        _z_size, 5.0 );
     nh.param("is_dynamic",is_dynamic,0);
+    nh.param("is_track",is_track,0);
     nh.param("planning/start_x",  _start_pt(0),  0.0);
     nh.param("planning/start_y",  _start_pt(1),  0.0);
     nh.param("planning/start_z",  _start_pt(2),  0.0);
