@@ -38,13 +38,13 @@ class AstarPathFinder
 		int GLX_SIZE, GLY_SIZE, GLZ_SIZE;
 		int GLXYZ_SIZE, GLYZ_SIZE;
 
-		double resolution, inv_resolution;
+		double resolution, inv_resolution,time_resolution_, inv_time_resolution_;
 		double gl_xl, gl_yl, gl_zl;
 		double gl_xu, gl_yu, gl_zu;
 
 		GridNodePtr terminatePtr;
 		std::multimap<double, GridNodePtr> openSet;
-
+		
 		double getHeu(GridNodePtr node1, GridNodePtr node2,int flag=2);
         double getG(GridNodePtr node1, GridNodePtr node2);
 
@@ -81,7 +81,7 @@ class AstarPathFinder
 		std::vector<Eigen::Vector3d> pathSimplify(const std::vector<Eigen::Vector3d> &path, const double path_resolution);
 		// void getTurningPoints();
 		nav_msgs::Path vector3d_to_waypoints(std::vector<Eigen::Vector3d> path);
-		bool if_collision(int x,int y,int z);
+		bool if_collision(int x,int y,int z);//没用的
 		Eigen::Vector3d target_point_generator(Eigen::Vector3d front_drone_pos,Eigen::Vector3d offset);
 };
 
@@ -97,7 +97,7 @@ inline bool AstarPathFinder::isFree(const Eigen::Vector3i & index) const
 
 inline bool AstarPathFinder::isOccupied(const int & idx_x, const int & idx_y, const int & idx_z) const
 {
-    return  (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE && idx_z >= 0 && idx_z < GLZ_SIZE &&
+    return  (idx_x <= 0 || idx_x > GLX_SIZE || idx_y <= 0 || idx_y > GLY_SIZE ||idx_z <= 0 || idx_z > GLZ_SIZE ||
             (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] == 1));
 }
 inline bool AstarPathFinder::isFree(const int & idx_x, const int & idx_y, const int & idx_z) const

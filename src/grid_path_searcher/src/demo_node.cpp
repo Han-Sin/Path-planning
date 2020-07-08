@@ -85,7 +85,8 @@ void rcvWaypointsCallback(const nav_msgs::Path & wp)
 }
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
-{
+{   
+    ROS_INFO("fsafa");
     if(_has_map&&!is_dynamic ) 
     {
         ROS_WARN("map already had");
@@ -128,8 +129,9 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2 & pointcloud_map)
     pcl::toROSMsg(cloud_vis, map_vis);
 
     map_vis.header.frame_id = "/world";
+    ROS_INFO("!11111");
     _grid_map_vis_pub.publish(map_vis);
-
+    ROS_INFO("!222222");
     _has_map = true;
 
     if(_astar_path_finder->coord2gridIndex(_start_pt)!=_astar_path_finder->coord2gridIndex(target_pt_front)){

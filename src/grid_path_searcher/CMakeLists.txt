@@ -52,3 +52,21 @@ add_executable ( random_complex
 target_link_libraries( random_complex
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES} )  
+
+add_executable(
+    hybridAstar
+    src/hybridAstar_node.cpp
+    src/Astar_searcher.cpp
+    src/JPS/JPS_utils.cpp
+    src/JPS/JPS_searcher.cpp
+    src/RRTstar/RRTPathSearch.cpp
+    src/HybridAstar/hybridAstar_searcher.cpp
+)
+
+target_link_libraries( hybridAstar
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES} 
+    ooqpgensparse 
+    ooqpsparse 
+    ooqpgondzio 
+    ooqpbase blas ma27 gfortran f2c  )  

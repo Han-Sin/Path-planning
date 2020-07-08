@@ -119,7 +119,25 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    
+#-------------------------------------------------混合A星轨迹可视化-----------------------
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /hybridAstar/vis_hybridAstar_traj
+      Name: hybridAstar
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
 
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /hybridAstar/vis_path_traj
+      Name: visited_nodes
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
 #----------------------------------------------搜索路径可视化----------------------------------------------
     - Class: rviz/Marker
       Enabled: false
@@ -357,3 +375,4 @@ Window Geometry:
   Width: 1855
   X: 65
   Y: 24
+

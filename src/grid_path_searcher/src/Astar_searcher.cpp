@@ -57,6 +57,7 @@ void AstarPathFinder::resetGrid(GridNodePtr ptr)
     ptr->cameFrom = NULL;
     ptr->gScore = inf;
     ptr->fScore = inf;
+    ptr->node_state = NOT_EXPAND;
 }
 
 void AstarPathFinder::resetUsedGrids()

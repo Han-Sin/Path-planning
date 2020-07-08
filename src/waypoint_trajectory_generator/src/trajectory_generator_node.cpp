@@ -642,6 +642,7 @@ void visWayPointTraj( MatrixXd polyCoeff, VectorXd time,int flag)
 
 void visWayPointTraj_besier( VectorXd time,int flag)
 {        
+    //可视化贝塞尔曲线
     visualization_msgs::Marker _traj_vis;
     _traj_vis.header.stamp       = ros::Time::now();
     _traj_vis.header.frame_id    = "world";
